@@ -1,0 +1,37 @@
+# Project-specific
+keys.txt
+*.png
+*.jpg
+*.jpeg
+summary.txt
+fix_avatar_policies.txt
+twilio_2FA_recovery_code.txt
+nul
+
+# Claude artifacts
+.claude/
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Node
+node_modules/
+dist/
+*.local
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db

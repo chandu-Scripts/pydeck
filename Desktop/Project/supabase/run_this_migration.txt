@@ -1,0 +1,46 @@
+-- Drop the table if it exists (to start fresh)
+DROP TABLE IF EXISTS community_flashcards CASCADE;
+
+-- Create community_flashcards table
+CREATE TABLE community_flashcards (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  created_by UUID NOT NULL,
+  question TEXT NOT NULL,
+  option_a TEXT NOT NULL,
+  option_b TEXT NOT NULL,
+  option_c TEXT NOT NULL,
+  option_d TEXT NOT NULL,
+  correct_answer TEXT NOT NULL CHECK (correct_answer IN ('a', 'b', 'c', 'd')),
+  explanation TEXT,
+  is_approved BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT fk_creator FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE CASCADE
+);
+
+-- Enable Row Level Security
+ALTER TABLE community_flashcards ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies
+CREATE POLICY "Approved community flashcards are viewable by authenticated users"
+ON community_flashcards FOR SELECT
+TO authenticated
+USING (is_approved = true);
+
+CREATE POLICY "Users can create community flashcards"
+ON community_flashcards FOR INSERT
+TO authenticated
+WITH CHECK (auth.uid() = created_by);
+
+CREATE POLICY "Users can update own community flashcards"
+ON community_flashcards FOR UPDATE
+TO authenticated
+USING (auth.uid() = created_by);
+
+CREATE POLICY "Users can delete own community flashcards"
+ON community_flashcards FOR DELETE
+TO authenticated
+USING (auth.uid() = created_by);
+
+-- Create indexes
+CREATE INDEX idx_community_flashcards_created_by ON community_flashcards(created_by);
+CREATE INDEX idx_community_flashcards_approved ON community_flashcards(is_approved);
