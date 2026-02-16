@@ -1,15 +1,17 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Send } from 'lucide-react'
+import { X, Send, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function CommunityChatModal({ isOpen, onClose }) {
-  const { user, profile } = useAuth()
+  const { user, profile, isAdmin } = useAuth()
   const [messages, setMessages] = useState([])
   const [newMessage, setNewMessage] = useState('')
   const [sending, setSending] = useState(false)
   const [isConnected, setIsConnected] = useState(false)
+  const [showClearConfirm, setShowClearConfirm] = useState(false)
+  const [clearing, setClearing] = useState(false)
   const messagesEndRef = useRef(null)
 
   const scrollToBottom = () => {
@@ -50,12 +52,7 @@ export default function CommunityChatModal({ isOpen, onClose }) {
     console.log('📡 Setting up real-time chat subscription...')
 
     const channel = supabase
-      .channel('community_chat_realtime', {
-        config: {
-          broadcast: { self: true },
-          presence: { key: user?.id }
-        }
-      })
+      .channel('community_chat_channel')
       .on(
         'postgres_changes',
         {
@@ -64,7 +61,7 @@ export default function CommunityChatModal({ isOpen, onClose }) {
           table: 'community_chat',
         },
         (payload) => {
-          console.log('💬 New message received:', payload.new)
+          console.log('💬 New message received via real-time:', payload.new)
 
           // Add new message in real-time
           setMessages((prev) => {
@@ -84,13 +81,33 @@ export default function CommunityChatModal({ isOpen, onClose }) {
           setTimeout(() => scrollToBottom(), 100)
         }
       )
-      .subscribe((status) => {
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'community_chat',
+        },
+        (payload) => {
+          console.log('🗑️ Message deleted via real-time:', payload.old)
+
+          // Remove deleted message in real-time
+          setMessages((prev) => prev.filter(msg => msg.id !== payload.old.id))
+        }
+      )
+      .subscribe((status, err) => {
         console.log('📡 Subscription status:', status)
+        if (err) {
+          console.error('❌ Subscription error:', err)
+        }
         if (status === 'SUBSCRIBED') {
           console.log('✅ Successfully subscribed to real-time chat!')
           setIsConnected(true)
         } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-          console.log('❌ Chat disconnected')
+          console.log('❌ Chat disconnected:', status)
+          setIsConnected(false)
+        } else if (status === 'TIMED_OUT') {
+          console.log('⏱️ Subscription timed out')
           setIsConnected(false)
         }
       })
@@ -114,19 +131,56 @@ export default function CommunityChatModal({ isOpen, onClose }) {
       message: newMessage.trim(),
     }
 
-    const { error } = await supabase
+    console.log('📤 Sending message:', messageData)
+
+    const { data, error } = await supabase
       .from('community_chat')
       .insert(messageData)
+      .select()
+      .single()
 
     if (error) {
-      console.error('Error sending message:', error)
+      console.error('❌ Error sending message:', error)
       alert('Failed to send message')
     } else {
-      // Clear input - message will appear via real-time subscription
+      console.log('✅ Message sent successfully:', data)
+
+      // Optimistic update - add message immediately
+      setMessages(prev => {
+        // Check if message already exists (might have come via real-time)
+        const exists = prev.some(msg => msg.id === data.id)
+        if (exists) return prev
+        return [...prev, data]
+      })
+
+      // Clear input
       setNewMessage('')
+
+      // Scroll to bottom
+      setTimeout(() => scrollToBottom(), 100)
     }
 
     setSending(false)
+  }
+
+  async function handleClearChat() {
+    setClearing(true)
+
+    const { error } = await supabase
+      .from('community_chat')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000') // Delete all rows
+
+    if (error) {
+      console.error('❌ Error clearing chat:', error)
+      alert('Failed to clear chat')
+    } else {
+      console.log('✅ Chat cleared successfully')
+      setMessages([])
+      setShowClearConfirm(false)
+    }
+
+    setClearing(false)
   }
 
   function formatTime(timestamp) {
@@ -175,12 +229,24 @@ export default function CommunityChatModal({ isOpen, onClose }) {
                   {isConnected ? 'Messages appear instantly' : 'Setting up real-time connection...'}
                 </p>
               </div>
-              <button
-                onClick={onClose}
-                className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors"
-              >
-                <X size={18} className="text-gray-400" />
-              </button>
+              <div className="flex items-center gap-2">
+                {/* Clear Chat Button (Admin Only) */}
+                {isAdmin && (
+                  <button
+                    onClick={() => setShowClearConfirm(true)}
+                    className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center hover:bg-red-500/20 transition-colors"
+                    title="Clear all messages"
+                  >
+                    <Trash2 size={16} className="text-red-400" />
+                  </button>
+                )}
+                <button
+                  onClick={onClose}
+                  className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors"
+                >
+                  <X size={18} className="text-gray-400" />
+                </button>
+              </div>
             </div>
 
             {/* Messages */}
@@ -244,6 +310,54 @@ export default function CommunityChatModal({ isOpen, onClose }) {
                 </button>
               </div>
             </form>
+
+            {/* Clear Chat Confirmation Modal */}
+            <AnimatePresence>
+              {showClearConfirm && (
+                <motion.div
+                  className="absolute inset-0 z-10 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm rounded-2xl"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setShowClearConfirm(false)}
+                >
+                  <motion.div
+                    className="bg-gradient-to-b from-navy-700 to-navy-800 rounded-xl border border-red-500/30 p-6 max-w-sm w-full"
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.9, opacity: 0 }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
+                        <Trash2 size={20} className="text-red-400" />
+                      </div>
+                      <h3 className="text-lg font-bold text-white">Clear Chat</h3>
+                    </div>
+
+                    <p className="text-gray-300 text-sm mb-6">
+                      Are you sure you want to clear all messages? This action cannot be undone and will permanently delete all chat history.
+                    </p>
+
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setShowClearConfirm(false)}
+                        className="flex-1 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white font-medium hover:bg-white/10 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleClearChat}
+                        disabled={clearing}
+                        className="flex-1 px-4 py-2.5 bg-gradient-to-r from-red-500 to-red-600 rounded-xl text-white font-medium hover:from-red-400 hover:to-red-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {clearing ? 'Clearing...' : 'Clear Chat'}
+                      </button>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         </motion.div>
       )}
