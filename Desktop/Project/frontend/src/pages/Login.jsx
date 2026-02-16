@@ -75,16 +75,41 @@ export default function Login() {
       {/* Login card */}
       <div className="relative z-10 w-full max-w-sm">
         <div className="flex flex-col items-center mb-8">
-          {/* Logo */}
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-400 to-cyan-600 flex items-center justify-center mb-4 shadow-lg shadow-cyan-500/20">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2L2 7l10 5 10-5-10-5z" />
-              <path d="M2 17l10 5 10-5" />
-              <path d="M2 12l10 5 10-5" />
-            </svg>
+          {/* Beautiful PyDeck Logo */}
+          <div className="relative w-24 h-24 mb-6">
+            {/* Glow effect */}
+            <div className="absolute inset-0 bg-cyan-400 rounded-3xl blur-2xl opacity-20 animate-pulse" />
+
+            {/* Logo container */}
+            <div className="relative w-full h-full rounded-3xl bg-gradient-to-br from-navy-700 to-navy-800 border border-cyan-500/30 flex items-center justify-center overflow-hidden shadow-2xl">
+              {/* Background decoration */}
+              <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-transparent" />
+
+              {/* Python Snake Logo */}
+              <svg width="64" height="64" viewBox="0 0 100 100" className="relative z-10">
+                <defs>
+                  <linearGradient id="pyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style={{stopColor: '#3b82f6'}} />
+                    <stop offset="50%" style={{stopColor: '#8b5cf6'}} />
+                    <stop offset="100%" style={{stopColor: '#22d3ee'}} />
+                  </linearGradient>
+                </defs>
+
+                {/* Top part (blue python) */}
+                <path d="M 20,30 Q 20,15 35,15 L 60,15 Q 75,15 75,30 L 75,50 Q 75,60 65,60 L 35,60 Q 25,60 25,50 Z"
+                      fill="url(#pyGrad)" opacity="0.95"/>
+                <circle cx="35" cy="25" r="4" fill="white"/>
+
+                {/* Bottom part (cyan) */}
+                <path d="M 80,70 Q 80,85 65,85 L 40,85 Q 25,85 25,70 L 25,50 Q 25,40 35,40 L 65,40 Q 75,40 75,50 Z"
+                      fill="#22d3ee" opacity="0.95"/>
+                <circle cx="65" cy="75" r="4" fill="#0a1929"/>
+              </svg>
+            </div>
           </div>
-          <h1 className="text-3xl font-bold text-white">PyDeck</h1>
-          <p className="text-cyan-400 text-sm mt-1">Master Python</p>
+
+          <h1 className="text-4xl font-bold text-white mb-2 tracking-tight">PyDeck</h1>
+          <p className="text-cyan-400 text-base font-medium tracking-wide">Master Python with Flashcards</p>
         </div>
 
         {/* Card */}
