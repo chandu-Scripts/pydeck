@@ -4,6 +4,7 @@ import { Bell, X, Send, History, Trash2, BarChart3, CheckCircle } from 'lucide-r
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { buttonTap } from '../utils/animations'
+import FlashcardAlert from './FlashcardAlert'
 
 export default function NotificationBell() {
   const { user, isAdmin } = useAuth()
@@ -15,6 +16,9 @@ export default function NotificationBell() {
   const [pollResults, setPollResults] = useState({}) // Store poll results for admin
   const [userVotes, setUserVotes] = useState({}) // Track user's votes
   const [votedPolls, setVotedPolls] = useState(new Set()) // Track which polls user voted on
+  const [deleteConfirm, setDeleteConfirm] = useState(null) // ID of notification to delete
+  const [deleting, setDeleting] = useState(false)
+  const [alert, setAlert] = useState({ show: false, type: 'success', title: '', message: '' })
 
   // Form state for sending notifications
   const [sendForm, setSendForm] = useState({
@@ -36,7 +40,7 @@ export default function NotificationBell() {
         fetchUserVotes()
       }
 
-      // Realtime subscription for new notifications
+      // Realtime subscription for new and deleted notifications
       const channel = supabase
         .channel('notifications_channel')
         .on(
@@ -48,6 +52,19 @@ export default function NotificationBell() {
           },
           () => {
             fetchNotifications()
+            fetchUnreadCount()
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'DELETE',
+            schema: 'public',
+            table: 'admin_notifications'
+          },
+          (payload) => {
+            // Remove deleted notification instantly
+            setNotifications(prev => prev.filter(n => n.id !== payload.old.id))
             fetchUnreadCount()
           }
         )
@@ -163,23 +180,23 @@ export default function NotificationBell() {
   async function handleSendNotification() {
     // Validation
     if (!sendForm.title.trim()) {
-      alert('Please enter a title')
+      setAlert({ show: true, type: 'danger', title: 'Missing Title', message: 'Please enter a title for the notification.' })
       return
     }
 
     if (sendForm.isPoll) {
       if (!sendForm.pollQuestion.trim()) {
-        alert('Please enter poll question')
+        setAlert({ show: true, type: 'danger', title: 'Missing Question', message: 'Please enter a poll question.' })
         return
       }
       if (!sendForm.pollOptionA.trim() || !sendForm.pollOptionB.trim() ||
           !sendForm.pollOptionC.trim() || !sendForm.pollOptionD.trim()) {
-        alert('Please fill all 4 poll options')
+        setAlert({ show: true, type: 'danger', title: 'Incomplete Poll', message: 'Please fill all 4 poll options.' })
         return
       }
     } else {
       if (!sendForm.message.trim()) {
-        alert('Please enter a message')
+        setAlert({ show: true, type: 'danger', title: 'Missing Message', message: 'Please enter a message for the notification.' })
         return
       }
     }
@@ -210,11 +227,16 @@ export default function NotificationBell() {
     setLoading(false)
 
     if (error) {
-      alert('Error sending notification: ' + error.message)
+      setAlert({ show: true, type: 'danger', title: 'Error', message: 'Failed to send notification: ' + error.message })
       return
     }
 
-    alert(sendForm.isPoll ? 'Poll sent to all users! 🎉' : 'Notification sent to all users! 🎉')
+    setAlert({
+      show: true,
+      type: 'success',
+      title: 'Sent Successfully!',
+      message: sendForm.isPoll ? 'Poll sent to all users! 🎉' : 'Notification sent to all users! 🎉'
+    })
     setSendForm({
       title: '',
       message: '',
@@ -231,7 +253,7 @@ export default function NotificationBell() {
 
   async function handleVote(notificationId, option) {
     if (votedPolls.has(notificationId)) {
-      alert('You have already voted on this poll!')
+      setAlert({ show: true, type: 'danger', title: 'Already Voted', message: 'You have already voted on this poll!' })
       return
     }
 
@@ -244,28 +266,31 @@ export default function NotificationBell() {
       })
 
     if (error) {
-      alert('Error submitting vote')
+      setAlert({ show: true, type: 'danger', title: 'Error', message: 'Failed to submit your vote. Please try again.' })
       return
     }
 
     setVotedPolls(prev => new Set([...prev, notificationId]))
     setUserVotes(prev => ({ ...prev, [notificationId]: option }))
-    alert('Thank you for voting! 🎉')
+    setAlert({ show: true, type: 'success', title: 'Vote Submitted!', message: 'Thank you for voting! 🎉' })
   }
 
-  async function handleDeleteNotification(notificationId) {
-    if (!confirm('Delete this notification? Users will no longer see it.')) return
+  async function handleDeleteNotification() {
+    setDeleting(true)
 
-    const { error } = await supabase
+    const { error} = await supabase
       .from('admin_notifications')
       .delete()
-      .eq('id', notificationId)
+      .eq('id', deleteConfirm)
 
     if (error) {
-      alert('Error deleting notification')
+      setAlert({ show: true, type: 'danger', title: 'Error', message: 'Failed to delete notification. Please try again.' })
+      setDeleting(false)
       return
     }
 
+    setDeleteConfirm(null)
+    setDeleting(false)
     fetchNotifications()
   }
 
@@ -528,7 +553,7 @@ export default function NotificationBell() {
                             </h3>
                             {isAdmin && (
                               <motion.button
-                                onClick={() => handleDeleteNotification(notif.id)}
+                                onClick={() => setDeleteConfirm(notif.id)}
                                 className="text-red-400 hover:text-red-300 transition-colors"
                                 whileHover={{ scale: 1.1 }}
                                 whileTap={{ scale: 0.9 }}
@@ -633,9 +658,66 @@ export default function NotificationBell() {
                 )}
               </div>
             </motion.div>
+
+            {/* Delete Confirmation Modal */}
+            <AnimatePresence>
+              {deleteConfirm && (
+                <motion.div
+                  className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setDeleteConfirm(null)}
+                >
+                  <motion.div
+                    className="bg-gradient-to-b from-navy-700 to-navy-800 rounded-2xl border border-red-500/30 p-6 max-w-sm w-full shadow-2xl"
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.9, opacity: 0 }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
+                        <Trash2 size={20} className="text-red-400" />
+                      </div>
+                      <h3 className="text-lg font-bold text-white">Delete Notification</h3>
+                    </div>
+
+                    <p className="text-gray-300 text-sm mb-6">
+                      Delete this notification? Users will no longer see it.
+                    </p>
+
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setDeleteConfirm(null)}
+                        className="flex-1 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white font-medium hover:bg-white/10 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleDeleteNotification}
+                        disabled={deleting}
+                        className="flex-1 px-4 py-2.5 bg-gradient-to-r from-red-500 to-red-600 rounded-xl text-white font-medium hover:from-red-400 hover:to-red-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {deleting ? 'Deleting...' : 'Delete'}
+                      </button>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         )}
       </AnimatePresence>
+
+      {/* Flashcard Alert */}
+      <FlashcardAlert
+        isOpen={alert.show}
+        onClose={() => setAlert({ ...alert, show: false })}
+        type={alert.type}
+        title={alert.title}
+        message={alert.message}
+      />
     </>
   )
 }

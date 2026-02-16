@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Send, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import FlashcardAlert from './FlashcardAlert'
 
 export default function CommunityChatModal({ isOpen, onClose }) {
   const { user, profile, isAdmin } = useAuth()
@@ -12,6 +13,7 @@ export default function CommunityChatModal({ isOpen, onClose }) {
   const [isConnected, setIsConnected] = useState(false)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
   const [clearing, setClearing] = useState(false)
+  const [alert, setAlert] = useState({ show: false, type: 'danger', title: '', message: '' })
   const messagesEndRef = useRef(null)
 
   const scrollToBottom = () => {
@@ -141,7 +143,7 @@ export default function CommunityChatModal({ isOpen, onClose }) {
 
     if (error) {
       console.error('❌ Error sending message:', error)
-      alert('Failed to send message')
+      setAlert({ show: true, type: 'danger', title: 'Error', message: 'Failed to send message. Please try again.' })
     } else {
       console.log('✅ Message sent successfully:', data)
 
@@ -173,7 +175,7 @@ export default function CommunityChatModal({ isOpen, onClose }) {
 
     if (error) {
       console.error('❌ Error clearing chat:', error)
-      alert('Failed to clear chat')
+      setAlert({ show: true, type: 'danger', title: 'Error', message: 'Failed to clear chat. Please try again.' })
     } else {
       console.log('✅ Chat cleared successfully')
       setMessages([])
@@ -361,6 +363,15 @@ export default function CommunityChatModal({ isOpen, onClose }) {
           </motion.div>
         </motion.div>
       )}
+
+      {/* Flashcard Alert */}
+      <FlashcardAlert
+        isOpen={alert.show}
+        onClose={() => setAlert({ ...alert, show: false })}
+        type={alert.type}
+        title={alert.title}
+        message={alert.message}
+      />
     </AnimatePresence>
   )
 }
