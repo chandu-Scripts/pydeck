@@ -62,6 +62,7 @@ export default function PathSelection() {
   const [loading, setLoading] = useState(true)
   const [showPathList, setShowPathList] = useState(false)
   const [currentPathIndex, setCurrentPathIndex] = useState(0)
+  const [orbitMode, setOrbitMode] = useState(true) // Start with orbit ON by default
   const navigate = useNavigate()
   const { profile } = useAuth()
 
@@ -139,8 +140,39 @@ export default function PathSelection() {
             {profile?.username || 'Focus'}
           </h1>
         </div>
-        {/* Notification Bell */}
-        <NotificationBell />
+
+        {/* Right side controls */}
+        <div className="flex items-center gap-3">
+          {/* Orbit Mode Toggle */}
+          <motion.button
+            onClick={() => setOrbitMode(!orbitMode)}
+            className={`relative w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
+              orbitMode
+                ? 'bg-gradient-to-br from-purple-500/30 to-pink-500/30 border-2 border-purple-500/50'
+                : 'bg-navy-700/50 border border-cyan-500/30'
+            }`}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            title={orbitMode ? 'Disable Orbit Mode' : 'Enable Orbit Mode'}
+          >
+            <motion.div
+              animate={{ rotate: orbitMode ? 360 : 0 }}
+              transition={{ duration: 2, repeat: orbitMode ? Infinity : 0, ease: 'linear' }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={orbitMode ? 'text-purple-400' : 'text-cyan-400'}>
+                <circle cx="12" cy="12" r="3" />
+                <circle cx="12" cy="12" r="10" strokeDasharray="2 4" />
+                <circle cx="12" cy="5" r="1.5" fill="currentColor" />
+                <circle cx="19" cy="12" r="1.5" fill="currentColor" />
+                <circle cx="12" cy="19" r="1.5" fill="currentColor" />
+                <circle cx="5" cy="12" r="1.5" fill="currentColor" />
+              </svg>
+            </motion.div>
+          </motion.button>
+
+          {/* Notification Bell */}
+          <NotificationBell />
+        </div>
       </motion.div>
 
       {/* 3D Carousel with Menu Button */}
@@ -158,6 +190,7 @@ export default function PathSelection() {
           topicCounts={topicCounts}
           onPathClick={(path) => navigate(`/paths/${path.id}`)}
           onIndexChange={setCurrentPathIndex}
+          orbitMode={orbitMode}
         />
 
         {/* View All Button - Below Carousel */}

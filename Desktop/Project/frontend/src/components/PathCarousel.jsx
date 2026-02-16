@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 
-export default function PathCarousel({ paths, pathIcons, iconColors, pathColors, topicCounts, onPathClick, onIndexChange }) {
+export default function PathCarousel({ paths, pathIcons, iconColors, pathColors, topicCounts, onPathClick, onIndexChange, orbitMode = false }) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [direction, setDirection] = useState(0)
+  const [orbitAngle, setOrbitAngle] = useState(0)
 
   // Notify parent when index changes
   useEffect(() => {
@@ -12,8 +13,65 @@ export default function PathCarousel({ paths, pathIcons, iconColors, pathColors,
     }
   }, [currentIndex, onIndexChange, paths])
 
+  // Orbit animation
+  useEffect(() => {
+    if (!orbitMode) return
+
+    const interval = setInterval(() => {
+      setOrbitAngle(prev => (prev + 1) % 360)
+    }, 30) // Update every 30ms for smooth rotation
+
+    return () => clearInterval(interval)
+  }, [orbitMode])
+
+  // Calculate circular orbit positions with 3D perspective (top-down view)
+  const getOrbitStyle = (index) => {
+    const total = paths.length
+    const anglePerCard = 360 / total
+    const currentAngle = orbitAngle + (index * anglePerCard)
+    const radians = (currentAngle * Math.PI) / 180
+
+    const radiusX = 150 // horizontal spread
+    const radiusY = 60  // depth spread (reduced to keep cards visible)
+
+    // Calculate position
+    const x = Math.sin(radians) * radiusX
+    const yRaw = Math.cos(radians) * radiusY
+
+    // Add offset to move orbit down (negative value pushes down because of -y later)
+    const yOffset = -40 // Negative = moves down
+    const y = yRaw + yOffset
+
+    // Calculate depth (0 to 1, where 1 is closest/front)
+    // Cards at bottom (y > 0) are closer, cards at top (y < 0) are farther
+    const depth = (yRaw + radiusY) / (radiusY * 2)
+
+    // Scale based on depth: closer = bigger (1.0), farther = smaller (0.7)
+    const scale = 0.7 + (depth * 0.3)
+
+    // Opacity based on depth: closer = opaque (1), farther = transparent (0.5)
+    const opacity = 0.5 + (depth * 0.5)
+
+    // Z-index: closer cards on top
+    const zIndex = Math.floor(depth * 10)
+
+    return {
+      x: x,
+      y: -y, // Negative because CSS y increases downward
+      scale: scale,
+      opacity: opacity,
+      rotateY: 0,
+      zIndex: zIndex,
+    }
+  }
+
   // Calculate positions for 3D carousel with proper wrapping
   const getCardStyle = (index) => {
+    // Use orbit positioning if orbit mode is enabled
+    if (orbitMode) {
+      return getOrbitStyle(index)
+    }
+
     const total = paths.length
     let diff = index - currentIndex
 
@@ -95,7 +153,7 @@ export default function PathCarousel({ paths, pathIcons, iconColors, pathColors,
   }
 
   return (
-    <div className="relative w-full h-[300px] flex items-center justify-center overflow-hidden">
+    <div className="relative w-full h-[350px] flex items-center justify-center overflow-visible">
       {/* Carousel Container */}
       <div className="relative w-full h-full flex items-center justify-center" style={{ perspective: '1500px' }}>
         {paths.map((path, index) => {
@@ -117,24 +175,26 @@ export default function PathCarousel({ paths, pathIcons, iconColors, pathColors,
           return (
             <motion.div
               key={path.id}
-              className="absolute w-56 h-64 cursor-pointer"
+              className={`absolute w-56 h-64 ${orbitMode ? 'cursor-default' : 'cursor-pointer'}`}
               initial={false}
               animate={{
                 x: style.x,
+                y: style.y || 0,
                 scale: style.scale,
                 opacity: style.opacity,
                 rotateY: style.rotateY,
                 zIndex: style.zIndex,
               }}
               transition={{
-                type: 'spring',
+                type: orbitMode ? 'tween' : 'spring',
                 stiffness: 300,
                 damping: 30,
+                duration: orbitMode ? 0 : undefined,
               }}
-              drag={index === currentIndex ? 'x' : false}
+              drag={!orbitMode && index === currentIndex ? 'x' : false}
               dragConstraints={{ left: 0, right: 0 }}
-              onDragEnd={handleDragEnd}
-              onClick={() => handleCardClick(index)}
+              onDragEnd={!orbitMode ? handleDragEnd : undefined}
+              onClick={!orbitMode ? () => handleCardClick(index) : undefined}
               style={{
                 transformStyle: 'preserve-3d',
               }}
