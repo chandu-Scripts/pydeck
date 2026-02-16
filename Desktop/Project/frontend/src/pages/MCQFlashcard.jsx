@@ -156,19 +156,19 @@ export default function MCQFlashcard() {
     if (showResult) return
 
     const card = cards[currentIndex]
+    const option = optionKey.slice(-1) // 'a', 'b', 'c', or 'd'
+    const correct = option === card.correct_option
+
+    // Always set the selection and show result
+    setSelectedOption(option)
+    setIsCorrect(correct)
+    setShowResult(true)
 
     // Check if user has already answered this card
     if (answeredCards.has(card.id)) {
-      // Already answered - just show result
+      // Already answered - just show result, don't record again
       return
     }
-
-    const option = optionKey.slice(-1) // 'a', 'b', 'c', or 'd'
-    setSelectedOption(option)
-    const correct = option === card.correct_option
-
-    setIsCorrect(correct)
-    setShowResult(true)
 
     if (correct) {
       fireConfetti()
