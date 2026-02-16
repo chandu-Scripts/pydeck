@@ -85,26 +85,42 @@ export default function Login() {
               {/* Background decoration */}
               <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-transparent" />
 
-              {/* Python Snake Logo */}
-              <svg width="64" height="64" viewBox="0 0 100 100" className="relative z-10">
-                <defs>
-                  <linearGradient id="pyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" style={{stopColor: '#3b82f6'}} />
-                    <stop offset="50%" style={{stopColor: '#8b5cf6'}} />
-                    <stop offset="100%" style={{stopColor: '#22d3ee'}} />
-                  </linearGradient>
-                </defs>
+              {/* Large Pi symbol background */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-cyan-400/20 text-7xl font-serif font-bold">π</span>
+              </div>
 
-                {/* Top part (blue python) */}
-                <path d="M 20,30 Q 20,15 35,15 L 60,15 Q 75,15 75,30 L 75,50 Q 75,60 65,60 L 35,60 Q 25,60 25,50 Z"
-                      fill="url(#pyGrad)" opacity="0.95"/>
-                <circle cx="35" cy="25" r="4" fill="white"/>
-
-                {/* Bottom part (cyan) */}
-                <path d="M 80,70 Q 80,85 65,85 L 40,85 Q 25,85 25,70 L 25,50 Q 25,40 35,40 L 65,40 Q 75,40 75,50 Z"
-                      fill="#22d3ee" opacity="0.95"/>
-                <circle cx="65" cy="75" r="4" fill="#0a1929"/>
-              </svg>
+              {/* "Py" Logo */}
+              <div className="relative z-10">
+                <svg width="64" height="64" viewBox="0 0 100 100">
+                  <defs>
+                    <linearGradient id="pyTextGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" style={{stopColor: '#3b82f6'}} />
+                      <stop offset="50%" style={{stopColor: '#8b5cf6'}} />
+                      <stop offset="100%" style={{stopColor: '#22d3ee'}} />
+                    </linearGradient>
+                    <filter id="glow">
+                      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                      <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                      </feMerge>
+                    </filter>
+                  </defs>
+                  <text
+                    x="50"
+                    y="65"
+                    fontSize="50"
+                    fontWeight="bold"
+                    fontFamily="Arial, sans-serif"
+                    textAnchor="middle"
+                    fill="url(#pyTextGrad)"
+                    filter="url(#glow)"
+                  >
+                    Py
+                  </text>
+                </svg>
+              </div>
             </div>
           </div>
 

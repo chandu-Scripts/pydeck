@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PyDeck Icon Generator - Py with π</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px;
+            background: #0a1929;
+            color: white;
+        }
+        canvas { border: 2px solid #22d3ee; margin: 20px; }
+        button {
+            background: linear-gradient(to right, #22d3ee, #3b82f6);
+            color: #0a1929;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:hover { opacity: 0.9; }
+        .preview { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
+        .icon-container { text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>PyDeck Icon Generator</h1>
+    <p>Py logo with π (Pi) symbol background</p>
+
+    <div class="preview">
+        <div class="icon-container">
+            <p>192x192 (Android)</p>
+            <canvas id="icon192" width="192" height="192"></canvas>
+            <br>
+            <button onclick="downloadIcon('icon192', 'icon-192.png')">Download 192x192</button>
+        </div>
+
+        <div class="icon-container">
+            <p>512x512 (Android)</p>
+            <canvas id="icon512" width="512" height="512"></canvas>
+            <br>
+            <button onclick="downloadIcon('icon512', 'icon-512.png')">Download 512x512</button>
+        </div>
+
+        <div class="icon-container">
+            <p>180x180 (iOS)</p>
+            <canvas id="icon180" width="180" height="180"></canvas>
+            <br>
+            <button onclick="downloadIcon('icon180', 'apple-touch-icon.png')">Download iOS Icon</button>
+        </div>
+
+        <div class="icon-container">
+            <p>Favicon 32x32</p>
+            <canvas id="favicon" width="32" height="32"></canvas>
+            <br>
+            <button onclick="downloadIcon('favicon', 'favicon.png')">Download Favicon</button>
+        </div>
+    </div>
+
+    <button onclick="downloadAll()" style="margin-top: 30px; font-size: 18px;">📥 Download All Icons</button>
+
+    <script>
+        function drawIcon(canvas) {
+            const ctx = canvas.getContext('2d');
+            const size = canvas.width;
+
+            // Background - dark navy to light navy gradient
+            const bgGradient = ctx.createLinearGradient(0, 0, size, size);
+            bgGradient.addColorStop(0, '#1e3a5f');
+            bgGradient.addColorStop(0.5, '#2d5a8a');
+            bgGradient.addColorStop(1, '#0a1929');
+            ctx.fillStyle = bgGradient;
+            ctx.fillRect(0, 0, size, size);
+
+            // Large Pi symbol in background (watermark style)
+            ctx.fillStyle = 'rgba(34, 211, 238, 0.15)'; // Cyan with low opacity
+            ctx.font = `bold ${size * 0.8}px Georgia, serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('π', size / 2, size / 2);
+
+            // Glow effect for "Py"
+            ctx.shadowColor = '#22d3ee';
+            ctx.shadowBlur = size * 0.05;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+
+            // "Py" text - main logo
+            const pyGradient = ctx.createLinearGradient(0, size * 0.3, 0, size * 0.7);
+            pyGradient.addColorStop(0, '#3b82f6'); // Blue
+            pyGradient.addColorStop(0.5, '#8b5cf6'); // Purple
+            pyGradient.addColorStop(1, '#22d3ee'); // Cyan
+            ctx.fillStyle = pyGradient;
+            ctx.font = `bold ${size * 0.45}px Arial, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('Py', size / 2, size / 2);
+
+            // Remove shadow for border
+            ctx.shadowBlur = 0;
+
+            // Decorative border
+            ctx.strokeStyle = '#22d3ee';
+            ctx.lineWidth = size * 0.025;
+            ctx.strokeRect(size * 0.05, size * 0.05, size * 0.9, size * 0.9);
+
+            // Inner subtle border
+            ctx.strokeStyle = 'rgba(59, 130, 246, 0.3)';
+            ctx.lineWidth = size * 0.015;
+            ctx.strokeRect(size * 0.08, size * 0.08, size * 0.84, size * 0.84);
+        }
+
+        // Draw all icons
+        ['icon192', 'icon512', 'icon180', 'favicon'].forEach(id => {
+            drawIcon(document.getElementById(id));
+        });
+
+        function downloadIcon(canvasId, filename) {
+            const canvas = document.getElementById(canvasId);
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        function downloadAll() {
+            setTimeout(() => downloadIcon('icon192', 'icon-192.png'), 100);
+            setTimeout(() => downloadIcon('icon512', 'icon-512.png'), 300);
+            setTimeout(() => downloadIcon('icon180', 'apple-touch-icon.png'), 500);
+            setTimeout(() => downloadIcon('favicon', 'favicon.png'), 700);
+            alert('✅ All icons downloaded! Now move them to frontend/public/ folder');
+        }
+    </script>
+</body>
+</html>
