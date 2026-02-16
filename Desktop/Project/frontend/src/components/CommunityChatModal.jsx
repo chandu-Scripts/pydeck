@@ -9,6 +9,7 @@ export default function CommunityChatModal({ isOpen, onClose }) {
   const [messages, setMessages] = useState([])
   const [newMessage, setNewMessage] = useState('')
   const [sending, setSending] = useState(false)
+  const [isConnected, setIsConnected] = useState(false)
   const messagesEndRef = useRef(null)
 
   const scrollToBottom = () => {
@@ -23,7 +24,11 @@ export default function CommunityChatModal({ isOpen, onClose }) {
       // Cleanup subscription when modal closes
       return () => {
         if (cleanup) cleanup()
+        setIsConnected(false)
       }
+    } else {
+      // Reset state when modal closes
+      setIsConnected(false)
     }
   }, [isOpen])
 
@@ -42,8 +47,15 @@ export default function CommunityChatModal({ isOpen, onClose }) {
   }
 
   function subscribeToMessages() {
+    console.log('📡 Setting up real-time chat subscription...')
+
     const channel = supabase
-      .channel('community_chat_realtime')
+      .channel('community_chat_realtime', {
+        config: {
+          broadcast: { self: true },
+          presence: { key: user?.id }
+        }
+      })
       .on(
         'postgres_changes',
         {
@@ -52,12 +64,18 @@ export default function CommunityChatModal({ isOpen, onClose }) {
           table: 'community_chat',
         },
         (payload) => {
+          console.log('💬 New message received:', payload.new)
+
           // Add new message in real-time
           setMessages((prev) => {
             // Check if message already exists by ID
             const exists = prev.some(msg => msg.id === payload.new.id)
-            if (exists) return prev
+            if (exists) {
+              console.log('⚠️ Message already exists, skipping')
+              return prev
+            }
 
+            console.log('✅ Adding new message to chat')
             // Add new message
             return [...prev, payload.new]
           })
@@ -66,9 +84,19 @@ export default function CommunityChatModal({ isOpen, onClose }) {
           setTimeout(() => scrollToBottom(), 100)
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('📡 Subscription status:', status)
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Successfully subscribed to real-time chat!')
+          setIsConnected(true)
+        } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+          console.log('❌ Chat disconnected')
+          setIsConnected(false)
+        }
+      })
 
     return () => {
+      console.log('🔌 Unsubscribing from chat...')
       supabase.removeChannel(channel)
     }
   }
@@ -133,8 +161,19 @@ export default function CommunityChatModal({ isOpen, onClose }) {
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-white/10">
               <div>
-                <h2 className="text-lg font-bold text-white">Community Chat</h2>
-                <p className="text-xs text-gray-400">Share knowledge in real-time</p>
+                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                  Community Chat
+                  {/* Connection Status Indicator */}
+                  <span className="flex items-center gap-1.5">
+                    <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-gray-500'}`} />
+                    <span className={`text-[10px] font-normal ${isConnected ? 'text-emerald-400' : 'text-gray-500'}`}>
+                      {isConnected ? 'Live' : 'Connecting...'}
+                    </span>
+                  </span>
+                </h2>
+                <p className="text-xs text-gray-400">
+                  {isConnected ? 'Messages appear instantly' : 'Setting up real-time connection...'}
+                </p>
               </div>
               <button
                 onClick={onClose}
