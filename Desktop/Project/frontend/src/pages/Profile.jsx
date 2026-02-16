@@ -218,7 +218,7 @@ export default function Profile() {
           />
         )}
         <MenuItem icon={Users} label="Invite Friends" onClick={() => setShowShareModal(true)} />
-        <MenuItem icon={HelpCircle} label="Contact Support" onClick={() => window.location.href = 'mailto:support@pydeck.com?subject=PyDeck Support Request'} />
+        <MenuItem icon={HelpCircle} label="Contact Support" onClick={() => window.location.href = 'mailto:pydeckofficial@gmail.com?subject=PyDeck Support Request'} />
         <button
           onClick={signOut}
           className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-red-400 hover:bg-red-500/5 transition-colors cursor-pointer"
