@@ -18,7 +18,12 @@ export default function CommunityChatModal({ isOpen, onClose }) {
   useEffect(() => {
     if (isOpen) {
       fetchMessages()
-      subscribeToMessages()
+      const cleanup = subscribeToMessages()
+
+      // Cleanup subscription when modal closes
+      return () => {
+        if (cleanup) cleanup()
+      }
     }
   }, [isOpen])
 
@@ -38,7 +43,7 @@ export default function CommunityChatModal({ isOpen, onClose }) {
 
   function subscribeToMessages() {
     const channel = supabase
-      .channel('community_chat_channel')
+      .channel('community_chat_realtime')
       .on(
         'postgres_changes',
         {
@@ -47,12 +52,18 @@ export default function CommunityChatModal({ isOpen, onClose }) {
           table: 'community_chat',
         },
         (payload) => {
-          // Only add if it's not already in the list (prevent duplicates)
+          // Add new message in real-time
           setMessages((prev) => {
+            // Check if message already exists by ID
             const exists = prev.some(msg => msg.id === payload.new.id)
             if (exists) return prev
+
+            // Add new message
             return [...prev, payload.new]
           })
+
+          // Auto scroll to bottom when new message arrives
+          setTimeout(() => scrollToBottom(), 100)
         }
       )
       .subscribe()
@@ -75,18 +86,15 @@ export default function CommunityChatModal({ isOpen, onClose }) {
       message: newMessage.trim(),
     }
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('community_chat')
       .insert(messageData)
-      .select()
-      .single()
 
     if (error) {
       console.error('Error sending message:', error)
       alert('Failed to send message')
     } else {
-      // Immediately add the message to the local state
-      setMessages((prev) => [...prev, data])
+      // Clear input - message will appear via real-time subscription
       setNewMessage('')
     }
 

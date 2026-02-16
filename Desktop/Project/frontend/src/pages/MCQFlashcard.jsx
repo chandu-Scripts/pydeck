@@ -33,6 +33,7 @@ export default function MCQFlashcard() {
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({ correct: 0, incorrect: 0 })
   const [responseStats, setResponseStats] = useState({})
+  const [answeredCards, setAnsweredCards] = useState(new Set()) // Track which cards user has answered
 
   // Speed control state - load from localStorage or default to 'normal'
   const [flipSpeed, setFlipSpeed] = useState(() => {
@@ -89,39 +90,56 @@ export default function MCQFlashcard() {
 
       setSubtopic(subtopicRes.data)
       setCards(cardsRes.data || [])
+
+      // Load user's existing responses to prevent re-answering
+      if (user && cardsRes.data) {
+        const cardIds = cardsRes.data.map(c => c.id)
+        const { data: responses } = await supabase
+          .from('flashcard_responses')
+          .select('flashcard_id')
+          .eq('user_id', user.id)
+          .in('flashcard_id', cardIds)
+
+        if (responses) {
+          setAnsweredCards(new Set(responses.map(r => r.flashcard_id)))
+        }
+      }
+
       setLoading(false)
     }
     fetchData()
-  }, [subtopicId])
+  }, [subtopicId, user])
 
   // Fetch response stats for current card
-  useEffect(() => {
-    async function fetchResponseStats() {
-      if (cards.length === 0 || !cards[currentIndex]) return
+  async function fetchResponseStats() {
+    if (cards.length === 0 || !cards[currentIndex]) return
 
-      const cardId = cards[currentIndex].id
-      const { data } = await supabase
-        .from('flashcard_responses')
-        .select('selected_option')
-        .eq('flashcard_id', cardId)
+    const cardId = cards[currentIndex].id
+    const { data } = await supabase
+      .from('flashcard_responses')
+      .select('selected_option')
+      .eq('flashcard_id', cardId)
 
-      if (data) {
-        const counts = { a: 0, b: 0, c: 0, d: 0 }
-        data.forEach(r => {
-          if (counts[r.selected_option] !== undefined) {
-            counts[r.selected_option]++
-          }
-        })
-        const total = data.length || 1
-        setResponseStats({
-          a: Math.round((counts.a / total) * 100),
-          b: Math.round((counts.b / total) * 100),
-          c: Math.round((counts.c / total) * 100),
-          d: Math.round((counts.d / total) * 100),
-          total: data.length,
-        })
-      }
+    const counts = { a: 0, b: 0, c: 0, d: 0 }
+    if (data && data.length > 0) {
+      data.forEach(r => {
+        if (counts[r.selected_option] !== undefined) {
+          counts[r.selected_option]++
+        }
+      })
     }
+
+    const total = data?.length || 0
+    setResponseStats({
+      a: total > 0 ? Math.round((counts.a / total) * 100) : 0,
+      b: total > 0 ? Math.round((counts.b / total) * 100) : 0,
+      c: total > 0 ? Math.round((counts.c / total) * 100) : 0,
+      d: total > 0 ? Math.round((counts.d / total) * 100) : 0,
+      total: total,
+    })
+  }
+
+  useEffect(() => {
     fetchResponseStats()
   }, [cards, currentIndex])
 
@@ -137,9 +155,16 @@ export default function MCQFlashcard() {
   async function handleOptionSelect(optionKey) {
     if (showResult) return
 
+    const card = cards[currentIndex]
+
+    // Check if user has already answered this card
+    if (answeredCards.has(card.id)) {
+      // Already answered - just show result
+      return
+    }
+
     const option = optionKey.slice(-1) // 'a', 'b', 'c', or 'd'
     setSelectedOption(option)
-    const card = cards[currentIndex]
     const correct = option === card.correct_option
 
     setIsCorrect(correct)
@@ -152,14 +177,28 @@ export default function MCQFlashcard() {
       setStats(prev => ({ ...prev, incorrect: prev.incorrect + 1 }))
     }
 
-    // Record response
+    // Record response (only once)
     if (user) {
-      await supabase.from('flashcard_responses').insert({
-        flashcard_id: card.id,
-        user_id: user.id,
-        selected_option: option,
-        is_correct: correct,
-      })
+      // Check if response already exists
+      const { data: existingResponse } = await supabase
+        .from('flashcard_responses')
+        .select('id')
+        .eq('flashcard_id', card.id)
+        .eq('user_id', user.id)
+        .single()
+
+      // Only insert if no response exists
+      if (!existingResponse) {
+        await supabase.from('flashcard_responses').insert({
+          flashcard_id: card.id,
+          user_id: user.id,
+          selected_option: option,
+          is_correct: correct,
+        })
+      }
+
+      // Mark this card as answered
+      setAnsweredCards(prev => new Set([...prev, card.id]))
 
       // Update user progress
       await supabase.from('user_progress').upsert({
@@ -191,26 +230,33 @@ export default function MCQFlashcard() {
           cards_mastered: correct ? 1 : 0,
         })
       }
+
+      // Refetch response stats to show updated bar chart
+      await fetchResponseStats()
     }
   }
 
   function handleNext() {
     if (currentIndex < cards.length - 1) {
+      // Reset swipe position immediately
+      x.set(0)
+
       setCurrentIndex(prev => prev + 1)
       setSelectedOption(null)
       setShowResult(false)
       setIsCorrect(false)
-      x.set(0) // Reset swipe position
     }
   }
 
   function handlePrevious() {
     if (currentIndex > 0) {
+      // Reset swipe position immediately
+      x.set(0)
+
       setCurrentIndex(prev => prev - 1)
       setSelectedOption(null)
       setShowResult(false)
       setIsCorrect(false)
-      x.set(0) // Reset swipe position
     }
   }
 
@@ -623,6 +669,7 @@ export default function MCQFlashcard() {
               }}
             >
               <motion.div
+                key={`back-${currentIndex}`}
                 className={`w-full h-full backdrop-blur-xl border-2 rounded-3xl p-6 flex flex-col shadow-2xl ${
                   isCorrect
                     ? 'bg-gradient-to-b from-emerald-600/80 to-navy-700/90 border-emerald-500/40'
@@ -636,6 +683,7 @@ export default function MCQFlashcard() {
                   rotate,
                   opacity,
                 }}
+                initial={{ x: 0, rotate: 0, opacity: 1 }}
                 drag="x"
                 dragConstraints={{ left: -200, right: 200 }}
                 dragElastic={0.2}

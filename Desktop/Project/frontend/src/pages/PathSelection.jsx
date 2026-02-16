@@ -8,6 +8,7 @@ import { SiPython, SiMysql, SiFlask, SiDjango } from 'react-icons/si'
 import { buttonTap } from '../utils/animations'
 import PathCarousel from '../components/PathCarousel'
 import PathListModal from '../components/PathListModal'
+import NotificationBell from '../components/NotificationBell'
 
 const pathIcons = {
   'Python': SiPython,
@@ -125,17 +126,21 @@ export default function PathSelection() {
       {/* Content */}
       <div className="relative z-10">
       <motion.div
-        className="mb-8"
+        className="mb-8 flex items-start justify-between"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <p className="text-cyan-400 text-sm font-medium">
-          {greeting.text} {greeting.emoji}
-        </p>
-        <h1 className="text-3xl lg:text-4xl font-bold text-white mt-1">
-          {profile?.username || 'Focus'}
-        </h1>
+        <div>
+          <p className="text-cyan-400 text-sm font-medium">
+            {greeting.text} {greeting.emoji}
+          </p>
+          <h1 className="text-3xl lg:text-4xl font-bold text-white mt-1">
+            {profile?.username || 'Focus'}
+          </h1>
+        </div>
+        {/* Notification Bell */}
+        <NotificationBell />
       </motion.div>
 
       {/* 3D Carousel with Menu Button */}

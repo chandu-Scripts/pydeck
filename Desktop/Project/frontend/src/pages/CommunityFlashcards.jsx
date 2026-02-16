@@ -82,17 +82,23 @@ export default function CommunityFlashcards() {
   useEffect(() => {
     if (user && profile) {
       fetchUnreadCount()
-      subscribeToNewMessages()
+      const cleanup = subscribeToNewMessages()
+
+      // Cleanup subscription on unmount
+      return () => {
+        if (cleanup) cleanup()
+      }
     }
   }, [user, profile])
 
   async function fetchUnreadCount() {
-    if (!profile) return
+    if (!profile || !user) return
 
     const { data: messages } = await supabase
       .from('community_chat')
       .select('id')
       .gt('created_at', profile.chat_last_seen || '2000-01-01')
+      .neq('user_id', user.id) // Exclude own messages
 
     setUnreadCount(messages?.length || 0)
   }
