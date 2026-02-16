@@ -83,14 +83,14 @@ export default function CreateFlashcardModal({ isOpen, onClose }) {
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center p-5 bg-black/70 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-0 sm:p-5 bg-black/70 backdrop-blur-sm overflow-y-auto"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
         >
           <motion.div
-            className="w-full max-w-lg bg-gradient-to-b from-navy-800 to-navy-900 rounded-2xl border border-cyan-500/30 p-6 max-h-[90vh] overflow-y-auto"
+            className="w-full max-w-lg bg-gradient-to-b from-navy-800 to-navy-900 rounded-none sm:rounded-2xl border-0 sm:border border-cyan-500/30 p-6 my-0 sm:my-8 min-h-screen sm:min-h-0 sm:max-h-[90vh] overflow-y-auto"
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
