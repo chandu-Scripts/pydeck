@@ -7,6 +7,10 @@ import { useNavigate } from 'react-router-dom'
 import { SimpleAnimatedNumber } from '../components/ui/AnimatedNumber'
 import { staggerContainer, staggerItem, buttonHover, buttonTap } from '../utils/animations'
 
+// Module-level cache — persists across navigations in same session
+// Stores both static data (paths/topics/cards) and user data per userId
+const _cache = {}
+
 export default function Analytics() {
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -16,36 +20,62 @@ export default function Analytics() {
   const [leaderboard, setLeaderboard] = useState([])
   const [showLeaderboard, setShowLeaderboard] = useState(false)
   const [lbLoading, setLbLoading] = useState(false)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!_cache[`user_${user?.id}`])
 
   useEffect(() => {
     if (!user) return
+
+    // If cached data exists — show it instantly, no spinner
+    const userCache = _cache[`user_${user.id}`]
+    if (userCache) {
+      setSessions(userCache.sessions)
+      setStats(userCache.stats)
+      setTopicMastery(userCache.mastery)
+      setLoading(false)
+    }
+
+    // Always fetch fresh data in background (silent refresh)
     async function fetchAnalytics() {
-      // Fetch study sessions for last 30 days
-      const fourteenDaysAgo = new Date()
-      fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 30)
+      const today = new Date().toISOString().split('T')[0]
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+      const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0]
 
-      const { data: sessionsData } = await supabase
-        .from('study_sessions')
-        .select('*')
-        .eq('user_id', user.id)
-        .gte('date', fourteenDaysAgo.toISOString().split('T')[0])
-        .order('date')
+      // All queries fire simultaneously
+      const [
+        { data: sessionsData },
+        { data: allSessions },
+        { count: masteredCount },
+        { count: recallCount },
+        { count: totalCards },
+        { data: progress },
+        pathsResult,
+        topicsResult,
+        cardsResult,
+      ] = await Promise.all([
+        supabase.from('study_sessions').select('*').eq('user_id', user.id).gte('date', thirtyDaysAgoStr).order('date'),
+        supabase.from('study_sessions').select('date').eq('user_id', user.id).order('date', { ascending: false }),
+        supabase.from('user_progress').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('status', 'mastered'),
+        supabase.from('user_progress').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('status', 'forgot'),
+        supabase.from('flashcards').select('*', { count: 'exact', head: true }),
+        supabase.from('user_progress').select('flashcard_id, status').eq('user_id', user.id),
+        _cache.paths   ? Promise.resolve({ data: _cache.paths })   : supabase.from('paths').select('id, name').order('display_order'),
+        _cache.topics  ? Promise.resolve({ data: _cache.topics })  : supabase.from('topics').select('id, path_id'),
+        _cache.allCards? Promise.resolve({ data: _cache.allCards }): supabase.from('flashcards').select('id, topic_id'),
+      ])
 
-      setSessions(sessionsData || [])
+      // Cache static data
+      if (!_cache.paths)    _cache.paths    = pathsResult.data
+      if (!_cache.topics)   _cache.topics   = topicsResult.data
+      if (!_cache.allCards) _cache.allCards = cardsResult.data
+
+      const paths    = _cache.paths    || []
+      const topics   = _cache.topics   || []
+      const allCards = _cache.allCards || []
 
       // Calculate streak
       let streak = 0
-      const today = new Date().toISOString().split('T')[0]
-
-      const { data: allSessions } = await supabase
-        .from('study_sessions')
-        .select('date')
-        .eq('user_id', user.id)
-        .order('date', { ascending: false })
-
       const sessionDates = new Set((allSessions || []).map(s => s.date))
-      // Streak is 0 if user didn't study today — no grace period
       if (sessionDates.has(today)) {
         streak = 1
         let checkDate = new Date()
@@ -56,52 +86,21 @@ export default function Analytics() {
         }
       }
 
-      // Count total mastered and recall
-      const { count: masteredCount } = await supabase
-        .from('user_progress')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('status', 'mastered')
-
-      const { count: recallCount } = await supabase
-        .from('user_progress')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('status', 'forgot')
-
-      const { count: totalCards } = await supabase
-        .from('flashcards')
-        .select('*', { count: 'exact', head: true })
-
-      setStats({
+      const newStats = {
         streak,
         mastered: masteredCount || 0,
         recall: recallCount || 0,
         tomorrow: recallCount || 0,
         totalCards: totalCards || 0,
-      })
-
-      // Path mastery (main categories only)
-      const { data: paths } = await supabase.from('paths').select('id, name').order('display_order')
-      const { data: topics } = await supabase.from('topics').select('id, path_id')
-      const { data: allCards } = await supabase.from('flashcards').select('id, topic_id')
-      const { data: progress } = await supabase
-        .from('user_progress')
-        .select('flashcard_id, status')
-        .eq('user_id', user.id)
+      }
 
       const progMap = {}
       ;(progress || []).forEach(p => { progMap[p.flashcard_id] = p.status })
 
-      const mastery = (paths || []).map(path => {
-        // Get all topics for this path
-        const pathTopics = (topics || []).filter(t => t.path_id === path.id)
-        const pathTopicIds = pathTopics.map(t => t.id)
-
-        // Get all cards for these topics
-        const pathCards = (allCards || []).filter(c => pathTopicIds.includes(c.topic_id))
+      const mastery = paths.map(path => {
+        const pathTopicIds = topics.filter(t => t.path_id === path.id).map(t => t.id)
+        const pathCards = allCards.filter(c => pathTopicIds.includes(c.topic_id))
         const mastered = pathCards.filter(c => progMap[c.id] === 'mastered').length
-
         return {
           name: path.name,
           total: pathCards.length,
@@ -110,6 +109,11 @@ export default function Analytics() {
         }
       })
 
+      // Save to cache for next visit
+      _cache[`user_${user.id}`] = { sessions: sessionsData || [], stats: newStats, mastery }
+
+      setSessions(sessionsData || [])
+      setStats(newStats)
       setTopicMastery(mastery)
       setLoading(false)
     }

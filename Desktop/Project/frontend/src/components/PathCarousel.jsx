@@ -168,6 +168,8 @@ export default function PathCarousel({ paths, pathIcons, iconColors, pathColors,
             'text-yellow-400': { bg: 'bg-yellow-500/10', border: 'border-yellow-500/30', text: 'text-yellow-400' },
             'text-gray-300': { bg: 'bg-gray-500/10', border: 'border-gray-500/30', text: 'text-gray-300' },
             'text-green-400': { bg: 'bg-green-500/10', border: 'border-green-500/30', text: 'text-green-400' },
+            'text-orange-400': { bg: 'bg-orange-500/10', border: 'border-orange-500/30', text: 'text-orange-400' },
+            'text-purple-400': { bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-400' },
             'text-cyan-400': { bg: 'bg-cyan-500/10', border: 'border-cyan-500/30', text: 'text-cyan-400' },
           }
           const buttonColors = colorMap[iconColor] || colorMap['text-cyan-400']
@@ -175,7 +177,7 @@ export default function PathCarousel({ paths, pathIcons, iconColors, pathColors,
           return (
             <motion.div
               key={path.id}
-              className={`absolute w-56 h-64 ${orbitMode ? 'cursor-default' : 'cursor-pointer'}`}
+              className={`absolute w-56 h-64 cursor-pointer`}
               initial={false}
               animate={{
                 x: style.x,
@@ -187,14 +189,14 @@ export default function PathCarousel({ paths, pathIcons, iconColors, pathColors,
               }}
               transition={{
                 type: orbitMode ? 'tween' : 'spring',
-                stiffness: 300,
-                damping: 30,
+                stiffness: 200,
+                damping: 25,
                 duration: orbitMode ? 0 : undefined,
               }}
               drag={!orbitMode && index === currentIndex ? 'x' : false}
               dragConstraints={{ left: 0, right: 0 }}
               onDragEnd={!orbitMode ? handleDragEnd : undefined}
-              onClick={!orbitMode ? () => handleCardClick(index) : undefined}
+              onClick={() => orbitMode ? onPathClick(paths[index]) : handleCardClick(index)}
               style={{
                 transformStyle: 'preserve-3d',
               }}

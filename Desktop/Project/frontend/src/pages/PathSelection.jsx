@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { ChevronRight, Code, Layers, Cpu, Database, Users, Menu } from 'lucide-react'
-import { SiPython, SiMysql, SiFlask, SiDjango } from 'react-icons/si'
+import { SiPython, SiMysql, SiFlask, SiDjango, SiNumpy, SiPandas } from 'react-icons/si'
 import { buttonTap } from '../utils/animations'
 import PathCarousel from '../components/PathCarousel'
 import PathListModal from '../components/PathListModal'
@@ -12,9 +12,11 @@ import NotificationBell from '../components/NotificationBell'
 
 const pathIcons = {
   'Python': SiPython,
-  'SQL': SiMysql,
+  'MySQL': SiMysql,
   'Flask': SiFlask,
   'Django': SiDjango,
+  'NumPy': SiNumpy,
+  'Pandas': SiPandas,
   'Python Basics': Code,
   'Intermediate Python': Layers,
   'Advanced Python': Cpu,
@@ -23,9 +25,11 @@ const pathIcons = {
 
 const pathColors = {
   'Python': 'from-blue-500/20 to-blue-600/10 border-blue-500/20',
-  'SQL': 'from-yellow-500/20 to-yellow-600/10 border-yellow-500/20',
+  'MySQL': 'from-yellow-500/20 to-yellow-600/10 border-yellow-500/20',
   'Flask': 'from-gray-500/20 to-gray-600/10 border-gray-500/20',
   'Django': 'from-green-500/20 to-green-600/10 border-green-500/20',
+  'NumPy': 'from-orange-500/20 to-orange-600/10 border-orange-500/20',
+  'Pandas': 'from-purple-500/20 to-purple-600/10 border-purple-500/20',
   'Python Basics': 'from-cyan-500/20 to-cyan-600/10 border-cyan-500/20',
   'Intermediate Python': 'from-blue-500/20 to-blue-600/10 border-blue-500/20',
   'Advanced Python': 'from-purple-500/20 to-purple-600/10 border-purple-500/20',
@@ -34,9 +38,11 @@ const pathColors = {
 
 const iconColors = {
   'Python': 'text-blue-400',
-  'SQL': 'text-yellow-400',
+  'MySQL': 'text-yellow-400',
   'Flask': 'text-gray-300',
   'Django': 'text-green-400',
+  'NumPy': 'text-orange-400',
+  'Pandas': 'text-purple-400',
   'Python Basics': 'text-cyan-400',
   'Intermediate Python': 'text-blue-400',
   'Advanced Python': 'text-purple-400',
@@ -62,7 +68,10 @@ export default function PathSelection() {
   const [loading, setLoading] = useState(true)
   const [showPathList, setShowPathList] = useState(false)
   const [currentPathIndex, setCurrentPathIndex] = useState(0)
-  const [orbitMode, setOrbitMode] = useState(true) // Start with orbit ON by default
+  const [orbitMode, setOrbitMode] = useState(() => {
+    const saved = sessionStorage.getItem('orbitMode')
+    return saved === null ? true : saved === 'true'
+  })
   const navigate = useNavigate()
   const { profile } = useAuth()
 
@@ -145,7 +154,11 @@ export default function PathSelection() {
         <div className="flex items-center gap-3">
           {/* Orbit Mode Toggle */}
           <motion.button
-            onClick={() => setOrbitMode(!orbitMode)}
+            onClick={() => {
+                const next = !orbitMode
+                setOrbitMode(next)
+                sessionStorage.setItem('orbitMode', next)
+              }}
             className={`relative w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
               orbitMode
                 ? 'bg-gradient-to-br from-purple-500/30 to-pink-500/30 border-2 border-purple-500/50'
@@ -204,6 +217,8 @@ export default function PathSelection() {
             'text-yellow-400': { from: 'from-yellow-500/20', to: 'to-yellow-600/20', border: 'border-yellow-500/30', hoverFrom: 'hover:from-yellow-500/30', hoverTo: 'hover:to-yellow-600/30', icon: 'text-yellow-400' },
             'text-gray-300': { from: 'from-gray-500/20', to: 'to-gray-600/20', border: 'border-gray-500/30', hoverFrom: 'hover:from-gray-500/30', hoverTo: 'hover:to-gray-600/30', icon: 'text-gray-300' },
             'text-green-400': { from: 'from-green-500/20', to: 'to-green-600/20', border: 'border-green-500/30', hoverFrom: 'hover:from-green-500/30', hoverTo: 'hover:to-green-600/30', icon: 'text-green-400' },
+            'text-orange-400': { from: 'from-orange-500/20', to: 'to-orange-600/20', border: 'border-orange-500/30', hoverFrom: 'hover:from-orange-500/30', hoverTo: 'hover:to-orange-600/30', icon: 'text-orange-400' },
+            'text-purple-400': { from: 'from-purple-500/20', to: 'to-purple-600/20', border: 'border-purple-500/30', hoverFrom: 'hover:from-purple-500/30', hoverTo: 'hover:to-purple-600/30', icon: 'text-purple-400' },
             'text-cyan-400': { from: 'from-cyan-500/20', to: 'to-blue-500/20', border: 'border-cyan-500/30', hoverFrom: 'hover:from-cyan-500/30', hoverTo: 'hover:to-blue-500/30', icon: 'text-cyan-400' },
           }
 
@@ -227,7 +242,7 @@ export default function PathSelection() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.4 }}
-        className="max-w-md mx-auto mt-32 mb-8"
+        className="max-w-md mx-auto mt-8 mb-8"
       >
         <motion.button
           onClick={() => navigate('/community')}
