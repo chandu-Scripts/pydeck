@@ -22,7 +22,8 @@ function PathCard({ path, pathIcons, iconColors, pathColors, topicCounts, onClic
       style={style}
       onClick={onClick}
     >
-      <div className={`w-full h-full bg-gradient-to-b ${colors} border-2 rounded-2xl p-5 flex flex-col items-center justify-between backdrop-blur-xl shadow-2xl`}>
+      {/* backdrop-blur-xl intentionally omitted: causes opaque rendering on iOS Safari inside preserve-3d */}
+      <div className={`w-full h-full bg-gradient-to-b ${colors} border-2 rounded-2xl p-5 flex flex-col items-center justify-between shadow-2xl`}>
         <div className={`w-16 h-16 rounded-xl bg-navy-700/50 flex items-center justify-center ${iconColor}`}>
           <Icon size={32} />
         </div>
