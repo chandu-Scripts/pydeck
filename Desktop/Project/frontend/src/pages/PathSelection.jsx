@@ -242,7 +242,7 @@ export default function PathSelection() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.4 }}
-        className="max-w-md mx-auto mt-16 mb-8"
+        className="max-w-md mx-auto mt-28 mb-8"
       >
         <motion.button
           onClick={() => navigate('/community')}
