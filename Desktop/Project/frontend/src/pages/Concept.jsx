@@ -6,6 +6,7 @@ import { ArrowLeft, ChevronLeft, ChevronRight, BookOpen } from 'lucide-react'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { buttonHover, buttonTap } from '../utils/animations'
+import CardShuffleLoader from '../components/CardShuffleLoader'
 
 function parseMarkdownToComponents(content) {
   const lines = content.split('\n')
@@ -160,11 +161,7 @@ export default function Concept() {
   }, [subtopicId])
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
+    return <CardShuffleLoader />
   }
 
   if (concepts.length === 0) {

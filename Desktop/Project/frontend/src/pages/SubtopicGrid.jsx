@@ -9,6 +9,8 @@ import {
   File, AlertTriangle, Box, Layers, Zap
 } from 'lucide-react'
 import { staggerContainer, staggerItem, buttonTap } from '../utils/animations'
+import CardShuffleLoader from '../components/CardShuffleLoader'
+import ErrorScreen from '../components/ErrorScreen'
 
 const subtopicIcons = {
   'Variables & Data Types': Variable,
@@ -28,16 +30,16 @@ const subtopicIcons = {
   'Modules & Packages': Package,
 }
 
-const subtopicColors = [
-  'from-cyan-500/20 to-cyan-600/5 border-cyan-500/15 hover:border-cyan-500/30',
-  'from-blue-500/20 to-blue-600/5 border-blue-500/15 hover:border-blue-500/30',
-  'from-purple-500/20 to-purple-600/5 border-purple-500/15 hover:border-purple-500/30',
-  'from-emerald-500/20 to-emerald-600/5 border-emerald-500/15 hover:border-emerald-500/30',
-  'from-amber-500/20 to-amber-600/5 border-amber-500/15 hover:border-amber-500/30',
-  'from-rose-500/20 to-rose-600/5 border-rose-500/15 hover:border-rose-500/30',
-  'from-indigo-500/20 to-indigo-600/5 border-indigo-500/15 hover:border-indigo-500/30',
-  'from-teal-500/20 to-teal-600/5 border-teal-500/15 hover:border-teal-500/30',
-  'from-orange-500/20 to-orange-600/5 border-orange-500/15 hover:border-orange-500/30',
+const subtopicGlows = [
+  { glow: 'rgba(6,182,212,',   border: 'border-cyan-500/40',    bg: 'from-cyan-500/10 to-cyan-600/5'     },
+  { glow: 'rgba(59,130,246,',  border: 'border-blue-500/40',    bg: 'from-blue-500/10 to-blue-600/5'     },
+  { glow: 'rgba(168,85,247,',  border: 'border-purple-500/40',  bg: 'from-purple-500/10 to-purple-600/5' },
+  { glow: 'rgba(16,185,129,',  border: 'border-emerald-500/40', bg: 'from-emerald-500/10 to-emerald-600/5' },
+  { glow: 'rgba(245,158,11,',  border: 'border-amber-500/40',   bg: 'from-amber-500/10 to-amber-600/5'   },
+  { glow: 'rgba(244,63,94,',   border: 'border-rose-500/40',    bg: 'from-rose-500/10 to-rose-600/5'     },
+  { glow: 'rgba(99,102,241,',  border: 'border-indigo-500/40',  bg: 'from-indigo-500/10 to-indigo-600/5' },
+  { glow: 'rgba(20,184,166,',  border: 'border-teal-500/40',    bg: 'from-teal-500/10 to-teal-600/5'    },
+  { glow: 'rgba(249,115,22,',  border: 'border-orange-500/40',  bg: 'from-orange-500/10 to-orange-600/5' },
 ]
 
 const subtopicIconColors = [
@@ -46,44 +48,52 @@ const subtopicIconColors = [
   'text-indigo-400', 'text-teal-400', 'text-orange-400',
 ]
 
+// Module-level cache: topicId → { topicData, subtopics }
+const subtopicGridCache = new Map()
+
 export default function SubtopicGrid() {
   const { topicId } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
-  const [topicData, setTopicData] = useState(null)
-  const [subtopics, setSubtopics] = useState([])
-  const [loading, setLoading] = useState(true)
+
+  const cached = subtopicGridCache.get(topicId)
+  const [topicData, setTopicData] = useState(cached?.topicData || null)
+  const [subtopics, setSubtopics] = useState(cached?.subtopics || [])
+  const [loading, setLoading] = useState(!cached)
+  const [error, setError] = useState(false)
   const [progress, setProgress] = useState({})
 
   useEffect(() => {
     async function fetchData() {
-      const [topicRes, subtopicRes] = await Promise.all([
-        supabase.from('topics').select('*, paths(name)').eq('id', topicId).single(),
-        supabase.from('subtopics').select('*').eq('topic_id', topicId).order('display_order'),
-      ])
-      setTopicData(topicRes.data)
-      setSubtopics(subtopicRes.data || [])
+      try {
+        let currentSubtopics = cached?.subtopics || []
 
-      if (user && subtopicRes.data && subtopicRes.data.length > 0) {
-        const subtopicIds = subtopicRes.data.map(s => s.id)
+        // Only fetch structural data if not cached
+        if (!cached) {
+          const [topicRes, subtopicRes] = await Promise.all([
+            supabase.from('topics').select('*, paths(name, id)').eq('id', topicId).single(),
+            supabase.from('subtopics').select('*').eq('topic_id', topicId).order('display_order'),
+          ])
+          if (topicRes.error) throw topicRes.error
+          setTopicData(topicRes.data)
+          currentSubtopics = subtopicRes.data || []
+          setSubtopics(currentSubtopics)
+          subtopicGridCache.set(topicId, { topicData: topicRes.data, subtopics: currentSubtopics })
+          setLoading(false)
+        }
 
-        // Get flashcards for these subtopics
-        const { data: cards } = await supabase
-          .from('flashcards')
-          .select('id, subtopic_id')
-          .in('subtopic_id', subtopicIds)
-
-        // Get user progress
-        const { data: prog } = await supabase
-          .from('user_progress')
-          .select('flashcard_id, status')
-          .eq('user_id', user.id)
-
-        const progressMap = {}
-        if (cards && prog) {
+        // Always fetch progress fresh
+        if (user && currentSubtopics.length > 0) {
+          const subtopicIds = currentSubtopics.map(s => s.id)
+          const [cardsRes, progRes] = await Promise.all([
+            supabase.from('flashcards').select('id, subtopic_id').in('subtopic_id', subtopicIds),
+            supabase.from('user_progress').select('flashcard_id, status').eq('user_id', user.id),
+          ])
+          const cards = cardsRes.data || []
+          const prog  = progRes.data  || []
+          const progressMap = {}
           const progMap = {}
           prog.forEach(p => { progMap[p.flashcard_id] = p.status })
-
           subtopicIds.forEach(sid => {
             const subtopicCards = cards.filter(c => c.subtopic_id === sid)
             const mastered = subtopicCards.filter(c => progMap[c.id] === 'mastered').length
@@ -93,21 +103,20 @@ export default function SubtopicGrid() {
               percent: subtopicCards.length > 0 ? Math.round((mastered / subtopicCards.length) * 100) : 0,
             }
           })
+          setProgress(progressMap)
         }
-        setProgress(progressMap)
+      } catch (e) {
+        console.error('SubtopicGrid fetch error:', e)
+        subtopicGridCache.delete(topicId)
+        setError(true)
+        setLoading(false)
       }
-      setLoading(false)
     }
     fetchData()
-  }, [topicId, user])
+  }, [topicId, user]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
-  }
+  if (loading) return <CardShuffleLoader />
+  if (error) return <ErrorScreen onRetry={() => navigate(0)} />
 
   return (
     <div className="px-5 py-8 lg:py-12">
@@ -135,7 +144,7 @@ export default function SubtopicGrid() {
       >
         {subtopics.map((subtopic, idx) => {
           const Icon = subtopicIcons[subtopic.name] || Code
-          const color = subtopicColors[idx % subtopicColors.length]
+          const { glow, border, bg } = subtopicGlows[idx % subtopicGlows.length]
           const iconColor = subtopicIconColors[idx % subtopicIconColors.length]
           const prog = progress[subtopic.id]
 
@@ -143,19 +152,26 @@ export default function SubtopicGrid() {
             <motion.button
               key={subtopic.id}
               onClick={() => navigate(`/subtopics/${subtopic.id}`)}
-              className={`relative flex flex-col items-center justify-center gap-3 p-5 lg:p-6 rounded-2xl bg-gradient-to-b ${color} border backdrop-blur-sm cursor-pointer aspect-square`}
+              className={`relative flex flex-col items-center justify-center gap-3 p-5 lg:p-6 rounded-2xl bg-gradient-to-b ${bg} from-navy-600/90 to-navy-700/90 border-2 ${border} backdrop-blur-xl cursor-pointer aspect-square overflow-hidden`}
+              style={{
+                boxShadow: `0 0 22px ${glow}0.22), inset 0 0 22px ${glow}0.06)`,
+              }}
               variants={staggerItem}
-              whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
+              whileHover={{
+                scale: 1.05,
+                boxShadow: `0 0 38px ${glow}0.45), inset 0 0 30px ${glow}0.12)`,
+                transition: { duration: 0.2 },
+              }}
               whileTap={buttonTap}
             >
-              <div className={`w-12 h-12 rounded-xl bg-navy-700/50 flex items-center justify-center ${iconColor}`}>
+              <div className={`w-12 h-12 rounded-xl bg-navy-700/50 flex items-center justify-center ${iconColor} relative z-10`}>
                 <Icon size={24} />
               </div>
-              <span className="text-white text-sm font-medium text-center leading-tight">
+              <span className="text-white text-sm font-medium text-center leading-tight relative z-10">
                 {subtopic.name}
               </span>
               {prog && prog.total > 0 && (
-                <div className="absolute bottom-3 left-3 right-3">
+                <div className="absolute bottom-3 left-3 right-3 z-10">
                   <div className="h-1 bg-navy-700/50 rounded-full overflow-hidden">
                     <motion.div
                       className="h-full bg-cyan-400 rounded-full"

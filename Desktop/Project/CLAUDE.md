@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-PyDeck is a Python learning flashcard application with a React frontend, FastAPI backend, and Supabase database. Users progress through learning paths (Python Basics → Intermediate → Advanced → DSA), study flashcards, and track their mastery with gamification features (streaks, points, leaderboard).
+PyDeck is a Python learning flashcard application with a React frontend, FastAPI backend, and Supabase database. Users progress through learning paths (Python, MySQL, Flask, Django, NumPy, Pandas), study flashcards, and track their mastery with gamification features (streaks, points, leaderboard).
 
 ## Development Commands
 
@@ -21,12 +21,12 @@ npm run preview         # Preview production build
 ### Backend (FastAPI)
 ```bash
 cd backend
-pip install -r requirements.txt    # Install dependencies
-uvicorn main:app --reload          # Start dev server (http://localhost:8000)
-uvicorn main:app --reload --port 8080  # Use custom port
+pip install -r requirements.txt
+uvicorn main:app --reload          # http://localhost:8000
+uvicorn main:app --reload --port 8080
 ```
 
-Access API docs at `http://localhost:8000/docs` (Swagger UI)
+API docs at `http://localhost:8000/docs`
 
 ## Architecture
 
@@ -34,275 +34,156 @@ Access API docs at `http://localhost:8000/docs` (Swagger UI)
 
 **State Management:**
 - `AuthContext` manages authentication state globally (user, profile, loading)
-- No Redux/Zustand - uses React Context + local state
+- No Redux/Zustand — React Context + local state only
 - Supabase client imported directly in components via `lib/supabase.js`
 
 **Routing Pattern:**
 ```
 /login (public)
 / (ProtectedRoute wrapper)
-  ├─ /paths (PathSelection - home page with learning paths)
-  ├─ /paths/:pathId (TopicGrid - topics within a path)
-  ├─ /topics/:topicId (SubtopicGrid - subtopics within a topic)
-  ├─ /subtopics/:subtopicId (SubtopicDetail - flashcard/quiz selection)
-  ├─ /concept/:subtopicId (Concept - concept learning flashcards)
-  ├─ /quiz/:subtopicId (MCQFlashcard - MCQ quiz with 3D flip)
-  ├─ /study/:topicId (Flashcard - original flashcard study)
-  ├─ /recall (RecallSession - practice forgot cards)
-  ├─ /analytics (Analytics - stats and leaderboard)
-  ├─ /profile (Profile - user settings and avatar)
-  ├─ /community (CommunityFlashcards - user-generated flashcards)
-  └─ /admin (AdminPanel - admin-only content management)
+  ├─ /paths          PathSelection — home page with carousel + motivational tips
+  ├─ /paths/:pathId  TopicGrid
+  ├─ /topics/:topicId        SubtopicGrid
+  ├─ /subtopics/:subtopicId  SubtopicDetail
+  ├─ /concept/:subtopicId    Concept
+  ├─ /quiz/:subtopicId       MCQFlashcard
+  ├─ /study/:topicId         Flashcard
+  ├─ /recall         RecallSession
+  ├─ /analytics      Analytics + leaderboard
+  ├─ /profile        Profile settings + avatar
+  ├─ /community      CommunityFlashcards
+  └─ /admin          AdminPanel (admin-only)
 ```
 
 **Data Flow:**
-1. Frontend calls Supabase directly for auth and database operations
-2. Backend API (`/api/paths`, `/api/topics`, etc.) is implemented but **not currently used by frontend**
-3. All CRUD operations happen via Supabase client SDK in React components
+1. Frontend calls Supabase directly for all auth and DB operations
+2. Backend API routes exist but are **not used by the frontend** — direct Supabase SDK only
+3. Pages fetch data in `useEffect` on mount
 
 **Component Hierarchy:**
-- `Layout` wraps all protected routes, includes gradient background
-- `BottomNav` conditionally renders (hidden on `/study/*` routes)
-- Pages fetch data in `useEffect` hooks on mount
+- `Layout` wraps all protected routes
+- `BottomNav` hidden on `/study/*` routes
+- `CardShuffleLoader` used as the loading screen across all pages
+
+### Login Page
+
+The login page (`/login`) has a **3D flip card** design:
+- **Front face:** Google OAuth + email/password sign in + guest login
+- **Back face:** Email sign-up form (name/email/password) → OTP verification step
+
+Auth functions in `AuthContext`:
+- `signInWithGoogle()` — OAuth redirect to `/paths`
+- `signInWithEmail(email, password)` — password login
+- `signUpWithEmail(email, password, name)` — registers + triggers OTP email
+- `verifyEmailOtp(email, token)` — `type: 'signup'` (not 'email')
+- `signInAsGuest()` — anonymous session, sets `role: 'guest'` in profiles
+- `signOut()`
+
+**Border beam effect on login card:**
+Uses CSS `@property --login-beam-angle` animated via `conic-gradient`. The beam sits as an `absolute inset-0` div **outside** the 3D flip `motion.div` to avoid GPU compositing conflicts with `backfaceVisibility: hidden`. Card faces use `padding: 1.5px` so the beam shows through the gap. Inner card uses `background: #060a13` (fully opaque) to prevent center bleed.
 
 ### Backend Architecture
 
-**API Modules:**
-All routes in `backend/routes/` follow consistent pattern:
-- Import `supabase` from `db.py`
-- Define APIRouter
-- Export router for inclusion in `main.py`
-
-**Database Access:**
-- Direct Supabase queries via `supabase.table()` methods
-- No ORM or database abstraction layer
-- Service key allows bypassing RLS (used in backend only)
+All routes in `backend/routes/` follow a consistent pattern: import `supabase` from `db.py`, define `APIRouter`, export for `main.py`. Service key bypasses RLS (backend only).
 
 ### Database Schema
 
-**Key Relationships:**
 ```
 paths (1) ──> (many) topics (1) ──> (many) subtopics (1) ──> (many) flashcards
                                            │                         │
-                                           ├──> (many) concepts      │
-                                           │                         │
-profiles <─────────────────────────────────┴─> user_progress <──────┘
-    │
+                                           └──> (many) concepts      │
+profiles <──────────────────────────────────────> user_progress <───┘
     ├──> study_sessions
     ├──> community_flashcards (created_by)
     ├──> flashcard_responses
     └──> user_appeals
 ```
 
-**Important Tables:**
-- `subtopics`: Subdivisions of topics
-  - Foreign key to `topics(id)`
-  - Flashcards are linked to subtopics, not topics directly
+**Key tables:**
+- `profiles`: `role` ('user'|'moderator'|'admin'|'guest'), `status` ('active'|'blocked'), `email`
+- `flashcards`: requires both `topic_id` (NOT NULL) AND `subtopic_id` for quiz flashcards; `card_type` is 'concept' or 'mcq'
+- `user_progress`: status `unseen`→`mastered`|`forgot`; unique on `(user_id, flashcard_id)`; always use `upsert()`
+- `study_sessions`: daily aggregates, unique on `(user_id, date)`, date as `YYYY-MM-DD` string
+- `community_flashcards`: `is_approved` boolean; `created_by` → `profiles(id)` (not a PostgREST-configured FK)
+- `user_appeals`: has two FKs to profiles (`user_id` and `reviewed_by`) — always use `profiles!user_id(...)` in queries
 
-- `concepts`: Learning content for each subtopic
-  - Contains title, content, code_examples
-  - Displayed in `/concept/:subtopicId` page
-
-- `flashcards`: Official flashcards created by admins
-  - Required: `topic_id` (NOT NULL), `question`, `answer`
-  - Optional: `subtopic_id` (links to quiz), `explanation`
-  - MCQ fields: `option_a`, `option_b`, `option_c`, `option_d`, `correct_option`
-  - `card_type`: 'concept' or 'mcq'
-  - Both topic_id AND subtopic_id must be provided for quiz flashcards
-
-- `user_progress`: Tracks flashcard status (`unseen`, `mastered`, `forgot`) per user
-  - Unique constraint on `(user_id, flashcard_id)`
-  - Use `upsert()` when updating progress
-
-- `study_sessions`: Daily aggregates (cards_studied, cards_mastered)
-  - Unique constraint on `(user_id, date)`
-  - Updated after each flashcard interaction
-
-- `community_flashcards`: User-generated MCQ flashcards
-  - Foreign key to `profiles(id)` for creator tracking
-  - Contains: question, 4 options (a-d), correct_answer, explanation
-  - `is_approved` boolean for admin moderation
-
-- `flashcard_responses`: Tracks MCQ answers for analytics
-  - Records user's selected option and whether it was correct
-  - Used to display "How others answered" bar chart
-
-- `profiles`: User profiles with additional fields
-  - `role`: 'user', 'moderator', or 'admin'
-  - `status`: 'active' or 'blocked'
-  - `email`: Stored for admin user management
-  - Auto-populated from auth.users on login
-
-- `user_appeals`: Appeal system for blocked users
-  - `user_id`: Foreign key to profiles (specify as `profiles!user_id` in queries)
-  - `message`: Appeal text (max 500 chars in UI)
-  - `status`: 'pending' or 'reviewed'
-  - `reviewed_by`: Admin who approved/denied
-
-**RLS Policies:**
-- All tables have RLS enabled
-- Users can only view/modify their own progress and sessions
-- Paths, topics, subtopics, flashcards, concepts are readable by all authenticated users
-- Frontend uses anon key, backend uses service key
-- **Admin-specific policies:**
-  - Admins can INSERT, UPDATE, DELETE on `flashcards` table
-  - Admins can UPDATE any user's profile (for blocking/unblocking)
-  - Admins can view all `user_appeals` with status='pending'
-  - Users can INSERT their own appeals
-  - When querying appeals with profiles, use explicit FK: `profiles!user_id(...)`
+**RLS:** Frontend uses anon key (enforces RLS). Backend uses service key (bypasses RLS). Admins have insert/update/delete on `flashcards` and can update any profile.
 
 ### Key Patterns
 
-**Progress Calculation:**
-When displaying topic/path progress, calculate from user_progress:
+**Community Flashcards join** — PostgREST can't auto-join `created_by` → `profiles`:
 ```javascript
-// Get all flashcard IDs for topic
-const cards = await supabase.from('flashcards').select('id').eq('topic_id', topicId)
-// Get user's progress for those cards
-const progress = await supabase.from('user_progress').select('*').eq('user_id', userId)
-// Calculate: mastered / total
+const { data: cards } = await supabase.from('community_flashcards').select('*')
+const ids = [...new Set(cards.map(c => c.created_by))]
+const { data: profiles } = await supabase.from('profiles').select('id, username, avatar_url').in('id', ids)
+const result = cards.map(c => ({ ...c, profiles: profiles.find(p => p.id === c.created_by) }))
 ```
 
-**Streak Logic:**
-Streaks have **no grace period**. User must study TODAY to have any streak count:
-1. Check if `study_sessions` has entry for today's date
-2. If yes, count backward consecutively (yesterday, day before, etc.)
-3. If no, streak is 0
+**Streak logic:** No grace period. Streak = 0 if no `study_sessions` entry for today's date; otherwise count back consecutively.
 
-**Session Tracking:**
-After marking a flashcard as mastered/recall:
-1. Upsert `user_progress` with new status
-2. Query today's `study_sessions` record
-3. If exists, increment counts; if not, insert new record
+**Flashcard status flow:** `unseen` (no row) → `mastered` → `forgot` → back to `mastered` via recall session.
 
-**Flashcard Status Flow:**
-- New cards: no entry in `user_progress` (treated as `unseen`)
-- User marks "Mastered": status → `mastered`
-- User marks "Recall": status → `forgot`
-- Forgot cards appear in `/recall` session
-- In recall session, can be re-mastered (status → `mastered`)
+**Guest accounts:** `signInAnonymously()` creates a profile with `role: 'guest'`. Guest accounts are excluded from all admin counts/lists via `.neq('role', 'guest')`.
 
-**Community Flashcards Pattern:**
-Since `community_flashcards.created_by` references `profiles(id)` (not a direct PostgREST foreign key):
-1. Fetch flashcards: `supabase.from('community_flashcards').select('*')`
-2. Get unique creator IDs from results
-3. Fetch profiles separately: `supabase.from('profiles').select('id, username, avatar_url').in('id', creatorIds)`
-4. Join in JavaScript: `cards.map(card => ({ ...card, profiles: profiles.find(p => p.id === card.created_by) }))`
+### Admin Panel (`/admin`)
 
-This avoids PostgREST join syntax errors when foreign key relationships aren't directly configured.
+Four tabs — Pending, Approved, Users, Appeals. Accessible only to `profile.role === 'admin'`.
 
-### Admin System
+- **Block/Unblock:** Updates `profiles.status`. Realtime subscription in `AuthContext` auto-signs-out blocked users instantly.
+- **Appeals:** Blocked users submit via `user_appeals`; admin can unblock and mark appeal as reviewed in one action.
+- **Making an admin:** `UPDATE profiles SET role = 'admin' WHERE email = 'user@example.com';`
 
-**Admin Panel (`/admin`):**
-- **Access Control:** Only users with `profile.role === 'admin'` can access
-- **Tabs:**
-  - **Pending:** Community flashcards awaiting approval
-  - **Approved:** All approved community flashcards
-  - **Users:** User management (view all users, change roles, block/unblock)
-  - **Appeals:** View and process unblock requests from blocked users
-  - **Quiz:** Create official MCQ flashcards with cascading dropdowns
+### Home Page (`/paths`)
 
-**Quiz Creation Flow:**
-1. Select Learning Path (from `paths` table)
-2. Select Topic (filtered by selected path from `topics` table)
-3. Select Subtopic (filtered by selected topic from `subtopics` table)
-4. Fill MCQ form: question, 4 options, correct answer, explanation
-5. Submit → Inserts into `flashcards` with BOTH `topic_id` and `subtopic_id`
-6. Flashcard appears in `/quiz/:subtopicId` for that subtopic
+- **3D cylinder carousel** (`PathCarousel`) — front card drives aurora background color and motivational tip color
+- **Rotating motivational tips** — color matches the front carousel card via `pathTipColors` map; tip text changes every 10s, container stays fixed (only text animates)
+- `frontCard` state passed from `PathCarousel` via `onFrontCardChange` prop
 
-**Block/Unblock System:**
-1. Admin clicks "Block" on user in admin panel
-2. User's `status` updated to 'blocked' in `profiles` table
-3. **Realtime subscription** in AuthContext detects profile change
-4. Blocked user is instantly signed out
-5. On next login attempt, blocked user sees `BlockedUserScreen`
-6. User can send appeal message (max 500 chars) via `user_appeals` table
-7. Admin sees appeal in Appeals tab, can unblock user
-8. Unblocking updates both `profiles.status='active'` and `user_appeals.status='reviewed'`
+### Styling
 
-**Admin Controls in Quiz Page:**
-When admin views `/quiz/:subtopicId`, they see additional buttons:
-- **Edit (pencil icon):** Opens modal to edit current flashcard in place
-- **Delete (trash icon):** Removes flashcard after confirmation
-- Perfect for quick fixes, removing duplicates, or correcting errors without leaving quiz
+**TailwindCSS 4** — custom theme in `index.css` (`--color-navy-*`, `--color-cyan-*`). No light mode. Mobile-first with `lg:` breakpoints.
 
-**Making Users Admin:**
-Run SQL in Supabase: `UPDATE profiles SET role = 'admin' WHERE email = 'user@example.com';`
-Or use `supabase/make_admin.sql` script.
+**Framer Motion gotchas:**
+- Declare all `useMotionValue()` / `useTransform()` at component top level (before any conditionals)
+- CSS animations (`animation:` property) on elements with `backfaceVisibility: hidden` break the backface hiding due to GPU compositing — keep animated elements outside the `preserve-3d` context
+- 3D flip: keep the `rotateY` wrapper separate from drag/swipe components
+
+**PWA Icons:** `frontend/public/generate-icons.html` — open in browser to generate and download the holo fan card icons (P·Y·D·E·C·K). Downloads go into `frontend/public/` replacing existing PNGs.
 
 ### Configuration
 
-**Environment Variables:**
-Currently hardcoded in `backend/config.py` and `frontend/src/lib/supabase.js`. When refactoring:
-- Backend: Use `.env` file with `python-dotenv`
-- Frontend: Use `.env` file with `VITE_` prefix (Vite convention)
-
-**Supabase Keys:**
-- **Anon Key** (frontend): Safe for client-side, enforces RLS
-- **Service Key** (backend): Bypasses RLS, server-side only
-- Avatar uploads use Supabase Storage `avatars` bucket
-
-### Styling & Animations
-
-**TailwindCSS:**
-- **TailwindCSS 4** with custom theme in `index.css`
-- Custom colors: navy-900 through navy-500, cyan-400/500/600
-- Dark theme (no light mode)
-- Responsive breakpoint: `lg:` for desktop layouts
-- Mobile-first design with bottom nav, desktop has sidebar
-
-**Framer Motion:**
-- 3D flip cards: Use `transform: rotateY()` with `transformStyle: 'preserve-3d'` and `backfaceVisibility: 'hidden'`
-- Separate flip transform from drag transform to avoid conflicts
-- Swipe gestures: `useMotionValue(0)` for x position, `useTransform()` for rotation/opacity
-- Declare all motion values at top level (React Hooks ordering)
-- Stagger animations imported from `utils/animations.js`
-
-**Brand Icons:**
-- Uses `react-icons/si` for tech logos (SiPython, SiMysql, SiFlask, SiDjango)
-- Path icons configured in `PathSelection.jsx` with matching color schemes
-
-### Testing & Linting
-
-**ESLint Config:**
-- Ignores unused vars starting with uppercase or underscore (`varsIgnorePattern`)
-- React Hooks plugin with recommended rules
-- React Refresh plugin for HMR
-
-**No Test Suite:**
-No testing framework is currently configured (no Jest, Vitest, pytest).
+Supabase keys are hardcoded in `frontend/src/lib/supabase.js` (anon key) and `backend/config.py` (service key). To refactor: frontend uses `VITE_` prefixed env vars, backend uses `python-dotenv`.
 
 ## Database Setup
 
-**Initial Schema:**
-1. Run `supabase/schema.sql` - Creates core tables (paths, topics, flashcards, profiles, user_progress, study_sessions)
-2. Run `supabase/migration.sql` - Adds subtopics, concepts, MCQ columns to flashcards, flashcard_responses
-3. Run `supabase/seed.sql` - Populates with learning paths and flashcards (uses fixed UUIDs, can be re-run safely)
+**Run in order:**
+1. `supabase/schema.sql` — core tables
+2. `supabase/migration.sql` — subtopics, concepts, MCQ columns, flashcard_responses
+3. `supabase/seed.sql` — learning paths + flashcards (fixed UUIDs, re-runnable)
+4. `community_flashcards_migration.sql`
+5. `add_email_status_to_profiles.sql`
+6. `create_user_appeals.sql`
+7. `admin_update_profiles_policy.sql`
+8. `admin_insert_flashcards_policy.sql`
 
-**Feature Migrations (run in order):**
-1. `community_flashcards_migration.sql` - Community-generated flashcards
-2. `add_email_status_to_profiles.sql` - Adds email and status columns to profiles
-3. `create_user_appeals.sql` - Appeal system for blocked users
-4. `admin_update_profiles_policy.sql` - RLS policy for admins to update any profile
-5. `admin_insert_flashcards_policy.sql` - RLS policies for admins to create/edit/delete flashcards
+**Seed data:** `seed_subtopics.sql`, `seed_concepts_full.sql`, `seed_intermediate.sql`, `seed_advanced.sql`, `seed_dsa.sql`
 
-**Seed Data Files:**
-- `seed_subtopics.sql` - Subtopics for all topics
-- `seed_concepts_full.sql` - Concept content for subtopics
-- `seed_intermediate.sql`, `seed_advanced.sql`, `seed_dsa.sql` - Additional flashcards
+**Guest role constraint:** The `profiles_role_check` constraint must include 'guest':
+```sql
+ALTER TABLE profiles DROP CONSTRAINT profiles_role_check;
+ALTER TABLE profiles ADD CONSTRAINT profiles_role_check
+  CHECK (role IN ('user', 'moderator', 'admin', 'guest'));
+```
 
 ## Common Gotchas
 
-1. **Avatar Upload:** Requires Supabase Storage bucket `avatars` to exist with proper policies
-2. **Leaderboard:** Points are calculated on-demand (mastered cards × 10), then updated in profiles table
-3. **Date Handling:** Study sessions use ISO date strings (`YYYY-MM-DD`), not timestamps
-4. **Phone OTP:** UI is present in Login page but functionality is disabled (Google OAuth only)
-5. **Backend API Routes:** Exist but unused by frontend - direct Supabase calls instead
-6. **React Hooks Ordering:** When using Framer Motion, declare all `useMotionValue()` and `useTransform()` at component top level before conditional logic to avoid "Hooks changed order" errors
-7. **3D Card Flips:** Keep flip transform wrapper (`rotateY`) separate from drag motion component to prevent transform conflicts
-8. **Community Flashcards Join:** Cannot use PostgREST join syntax for `profiles` - fetch separately and join in JavaScript (see Community Flashcards Pattern above)
-9. **Admin RLS Errors:** If admin actions fail with RLS errors, ensure all admin policies are applied (`admin_update_profiles_policy.sql`, `admin_insert_flashcards_policy.sql`)
-10. **Flashcard Creation:** When creating quiz flashcards, BOTH `topic_id` (NOT NULL) and `subtopic_id` are required, not just subtopic_id
-11. **User Appeals Foreign Key:** When fetching appeals with user profiles, specify FK explicitly: `.select('*, profiles!user_id(id, username, email, avatar_url)')` - the table has two FKs to profiles (user_id and reviewed_by)
-12. **Blocked User Detection:** Blocked status is detected via realtime subscription in AuthContext - user is auto-signed out when status changes to 'blocked'
-13. **Existing User Status:** Users created before status column was added may have NULL status - AuthContext auto-sets to 'active' on login
+1. **Backface + CSS animation conflict:** Never put a CSS `animation:` on an element that also has `backfaceVisibility: hidden` — the animation creates a compositing layer that breaks backface hiding. Move animated elements outside the 3D context.
+2. **OTP verification type:** Use `type: 'signup'` (not `'email'`) when calling `supabase.auth.verifyOtp()` for email sign-up confirmation.
+3. **Supabase free tier email limit:** 3 emails/hour on the default email service. Set up a custom SMTP provider (e.g. Resend) for production.
+4. **Flashcard creation:** Both `topic_id` (NOT NULL) and `subtopic_id` are required for quiz flashcards.
+5. **User appeals FK:** Always specify `.select('*, profiles!user_id(...)')` — the table has two FKs to profiles.
+6. **Avatar upload:** Requires Supabase Storage bucket `avatars` with public read policy.
+7. **Leaderboard points:** Calculated on-demand (mastered cards × 10), then written back to `profiles.points`.
+8. **Existing users with NULL status:** `AuthContext.fetchProfile()` auto-sets `status: 'active'` on login for legacy rows.
+9. **Backend routes unused:** All `/api/*` backend routes exist but the frontend calls Supabase directly — don't route new features through the backend unless intentional.
+10. **Admin RLS errors:** If admin writes fail, ensure `admin_update_profiles_policy.sql` and `admin_insert_flashcards_policy.sql` have been applied.

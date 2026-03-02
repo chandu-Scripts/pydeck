@@ -14,6 +14,7 @@ export default function Profile() {
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const fileInputRef = useRef(null)
 
   useEffect(() => {
@@ -220,7 +221,7 @@ export default function Profile() {
         <MenuItem icon={Users} label="Invite Friends" onClick={() => setShowShareModal(true)} />
         <MenuItem icon={HelpCircle} label="Contact Support" onClick={() => window.location.href = 'mailto:pydeckofficial@gmail.com?subject=PyDeck Support Request'} />
         <button
-          onClick={signOut}
+          onClick={() => setShowLogoutConfirm(true)}
           className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-red-400 hover:bg-red-500/5 transition-colors cursor-pointer"
         >
           <LogOut size={20} />
@@ -336,6 +337,53 @@ export default function Profile() {
                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                   </svg>
                   <span className="text-white font-medium">Copy Link</span>
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Logout Confirmation Modal */}
+      <AnimatePresence>
+        {showLogoutConfirm && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowLogoutConfirm(false)}
+          >
+            <motion.div
+              className="w-full max-w-sm bg-gradient-to-b from-navy-800 to-navy-900 rounded-2xl border border-red-500/30 p-6 shadow-2xl"
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-red-500/15 flex items-center justify-center">
+                  <LogOut size={20} className="text-red-400" />
+                </div>
+                <h2 className="text-lg font-bold text-white">Log Out?</h2>
+              </div>
+
+              <p className="text-sm text-gray-400 mb-6">
+                Your progress is saved. You can log back in anytime to continue learning.
+              </p>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowLogoutConfirm(false)}
+                  className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-gray-300 text-sm font-medium hover:bg-white/10 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={signOut}
+                  className="flex-1 py-3 rounded-xl bg-red-500/20 border border-red-500/40 text-red-400 text-sm font-medium hover:bg-red-500/30 transition-colors"
+                >
+                  Log Out
                 </button>
               </div>
             </motion.div>

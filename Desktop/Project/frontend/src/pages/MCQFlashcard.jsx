@@ -1,11 +1,12 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion'
+import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { ArrowLeft, RotateCcw, Zap, RefreshCcw, CheckCircle, Trash2, Edit } from 'lucide-react'
 import confetti from 'canvas-confetti'
 import { springConfigs, buttonTap } from '../utils/animations'
+import CardShuffleLoader from '../components/CardShuffleLoader'
 
 const optionLabels = ['A', 'B', 'C', 'D']
 const optionKeys = ['option_a', 'option_b', 'option_c', 'option_d']
@@ -377,11 +378,7 @@ export default function MCQFlashcard() {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
+    return <CardShuffleLoader />
   }
 
   if (cards.length === 0) {
@@ -408,7 +405,7 @@ export default function MCQFlashcard() {
   )
 
   return (
-    <div className="min-h-screen flex flex-col bg-navy-900">
+    <div className="fixed inset-0 flex flex-col bg-navy-900 overflow-hidden" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4">
         <button onClick={() => navigate(-1)} className="text-gray-400 hover:text-white transition-colors cursor-pointer">
@@ -570,7 +567,7 @@ export default function MCQFlashcard() {
 
       {/* Centered Flashcard */}
       <div className="flex-1 flex items-center justify-center px-5 pb-8">
-        <div className="w-full max-w-lg">
+        <div className="w-full max-w-md">
           {/* Swipe Hint - Just Above Card */}
           {showResult && (
             <motion.div
@@ -582,6 +579,14 @@ export default function MCQFlashcard() {
               <div className="px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/20">
                 <span className="text-red-400 font-semibold text-sm">← Recall</span>
               </div>
+              <div className="flex flex-col items-center gap-0.5">
+                <span className="text-gray-500 text-[10px] uppercase tracking-widest">swipe</span>
+                <div className="flex items-center gap-1 text-gray-600">
+                  <span className="text-xs">←</span>
+                  <div className="w-8 h-px bg-gray-600" />
+                  <span className="text-xs">→</span>
+                </div>
+              </div>
               <div className="px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
                 <span className="text-emerald-400 font-semibold text-sm">Mastered →</span>
               </div>
@@ -590,7 +595,7 @@ export default function MCQFlashcard() {
 
           <div style={{ perspective: '2500px' }}>
           <motion.div
-            className="relative w-full min-h-[500px]"
+            className="relative w-full min-h-[420px]"
             style={{
               transformStyle: 'preserve-3d',
               boxShadow: showResult
@@ -613,16 +618,32 @@ export default function MCQFlashcard() {
           >
             {/* FRONT FACE - Question + Options */}
             <div
-              className="absolute inset-0 bg-gradient-to-b from-navy-600/90 to-navy-700/90 backdrop-blur-xl border-2 border-cyan-500/30 rounded-3xl p-6 flex flex-col shadow-2xl"
+              className="absolute inset-0 bg-gradient-to-b from-navy-600/90 to-navy-700/90 backdrop-blur-xl border-2 border-cyan-500/30 rounded-3xl p-4 flex flex-col shadow-2xl"
               style={{
                 backfaceVisibility: 'hidden',
                 WebkitBackfaceVisibility: 'hidden',
+                pointerEvents: showResult ? 'none' : 'auto',
                 boxShadow: '0 0 40px rgba(6, 182, 212, 0.3), inset 0 0 20px rgba(6, 182, 212, 0.1)',
               }}
             >
+              {/* Difficulty badge */}
+              {card.difficulty && (
+                <div className="absolute top-4 right-4">
+                  <span className={`text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${
+                    card.difficulty === 'easy'
+                      ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
+                      : card.difficulty === 'medium'
+                      ? 'text-amber-400 bg-amber-500/10 border-amber-500/30'
+                      : 'text-red-400 bg-red-500/10 border-red-500/30'
+                  }`}>
+                    {card.difficulty}
+                  </span>
+                </div>
+              )}
+
               {/* Question */}
-              <div className="mb-6">
-                <span className="text-[11px] uppercase tracking-widest text-cyan-400 mb-3 block">
+              <div className="mb-4">
+                <span className="text-[11px] uppercase tracking-widest text-cyan-400 mb-2 block">
                   Question
                 </span>
                 <p className="text-white text-lg leading-relaxed font-medium">
@@ -631,7 +652,7 @@ export default function MCQFlashcard() {
               </div>
 
               {/* Options */}
-              <div className="flex-1 flex flex-col gap-3 justify-center">
+              <div className="flex-1 flex flex-col gap-2 justify-center">
                 {optionKeys.map((key, idx) => {
                   const optionValue = key.slice(-1)
                   const optionText = card[key]
@@ -670,12 +691,14 @@ export default function MCQFlashcard() {
             >
               <motion.div
                 key={`back-${currentIndex}`}
-                className={`w-full h-full backdrop-blur-xl border-2 rounded-3xl p-6 flex flex-col shadow-2xl ${
+                className={`w-full h-full backdrop-blur-xl border-2 rounded-3xl flex flex-col shadow-2xl overflow-hidden ${
                   isCorrect
                     ? 'bg-gradient-to-b from-emerald-600/80 to-navy-700/90 border-emerald-500/40'
                     : 'bg-gradient-to-b from-red-600/80 to-navy-700/90 border-red-500/40'
                 }`}
                 style={{
+                  padding: '1rem',
+                  pointerEvents: showResult ? 'auto' : 'none',
                   boxShadow: isCorrect
                     ? '0 0 50px rgba(16, 185, 129, 0.4), inset 0 0 30px rgba(16, 185, 129, 0.15)'
                     : '0 0 50px rgba(239, 68, 68, 0.4), inset 0 0 30px rgba(239, 68, 68, 0.15)',
@@ -685,22 +708,20 @@ export default function MCQFlashcard() {
                 }}
                 initial={{ x: 0, rotate: 0, opacity: 1 }}
                 drag="x"
-                dragConstraints={{ left: -200, right: 200 }}
-                dragElastic={0.2}
+                dragConstraints={{ left: 0, right: 0 }}
+                dragElastic={0.9}
                 onDragEnd={(e, { offset, velocity }) => {
-                  const swipeThreshold = 100
+                  const swipeThreshold = 80
+                  const isFlick = Math.abs(velocity.x) > 400
 
-                  if (offset.x < -swipeThreshold) {
-                    // Swipe left - animate card off-screen to the left
-                    x.set(-500, { type: 'spring', velocity: velocity.x, stiffness: 300, damping: 30 })
+                  if (offset.x < -swipeThreshold || (isFlick && velocity.x < 0)) {
+                    animate(x, -window.innerWidth, { type: 'spring', stiffness: 200, damping: 25, velocity: velocity.x })
                     handleSwipe('left')
-                  } else if (offset.x > swipeThreshold) {
-                    // Swipe right - animate card off-screen to the right
-                    x.set(500, { type: 'spring', velocity: velocity.x, stiffness: 300, damping: 30 })
+                  } else if (offset.x > swipeThreshold || (isFlick && velocity.x > 0)) {
+                    animate(x, window.innerWidth, { type: 'spring', stiffness: 200, damping: 25, velocity: velocity.x })
                     handleSwipe('right')
                   } else {
-                    // Not enough swipe - snap back to center
-                    x.set(0, { type: 'spring', stiffness: 500, damping: 30 })
+                    animate(x, 0, { type: 'spring', stiffness: 500, damping: 35 })
                   }
                 }}
               >
@@ -725,7 +746,7 @@ export default function MCQFlashcard() {
                 <CheckCircle size={32} className="text-emerald-400" />
               </motion.div>
               {/* Result Badge */}
-              <div className="text-center mb-6">
+              <div className="text-center mb-3">
                 <motion.div
                   className={`inline-block px-6 py-2 rounded-full font-bold text-lg ${
                     isCorrect
@@ -743,7 +764,7 @@ export default function MCQFlashcard() {
               {/* Explanation */}
               {card.explanation && (
                 <motion.div
-                  className="bg-navy-700/50 rounded-2xl p-4 mb-6 border border-white/5"
+                  className="bg-navy-700/50 rounded-2xl p-3 mb-3 border border-white/5"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
@@ -756,18 +777,18 @@ export default function MCQFlashcard() {
               {/* Vertical Bar Graph - How Others Answered */}
               {responseStats.total > 0 && (
                 <motion.div
-                  className="flex-1 bg-navy-700/30 rounded-2xl p-5 border border-white/5 flex flex-col"
+                  className="flex-1 bg-navy-700/30 rounded-2xl p-3 border border-white/5 flex flex-col min-h-0"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.5 }}
                 >
                   {/* Header - Fixed at top */}
-                  <p className="text-gray-400 text-xs mb-6 text-center flex-shrink-0">
+                  <p className="text-gray-400 text-xs mb-3 text-center flex-shrink-0">
                     How others answered ({responseStats.total} responses)
                   </p>
 
                   {/* Bar Chart Container - Limited height to prevent overlap */}
-                  <div className="flex items-end justify-around gap-3 flex-1" style={{ maxHeight: '180px' }}>
+                  <div className="flex items-end justify-around gap-3 flex-1" style={{ maxHeight: '120px' }}>
                     {optionKeys.map((key, idx) => {
                       const optionValue = key.slice(-1)
                       const percent = responseStats[optionValue] || 0
@@ -782,7 +803,7 @@ export default function MCQFlashcard() {
                       return (
                         <div key={key} className="flex-1 flex flex-col items-center justify-end h-full">
                           {/* Bar - grows upward, fixed position with safe margin */}
-                          <div className="w-full flex flex-col items-center justify-end" style={{ height: '130px' }}>
+                          <div className="w-full flex flex-col items-center justify-end" style={{ height: '80px' }}>
                             <motion.div
                               className={`w-full rounded-t-xl relative flex items-start justify-center ${
                                 isUserSelection ? 'ring-2 ring-white ring-offset-2 ring-offset-emerald-900/50' : ''

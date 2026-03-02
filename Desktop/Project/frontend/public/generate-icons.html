@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>PyDeck Icon Generator - Py with π</title>
+    <title>PyDeck Icon Generator - Holo Fan</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -9,132 +9,220 @@
             flex-direction: column;
             align-items: center;
             padding: 40px;
-            background: #0a1929;
+            background: #060a13;
             color: white;
         }
-        canvas { border: 2px solid #22d3ee; margin: 20px; }
+        h1 { color: #22d3ee; margin-bottom: 4px; }
+        p { color: #94a3b8; margin-top: 0; }
+        canvas { margin: 20px; border-radius: 16px; display: block; }
         button {
             background: linear-gradient(to right, #22d3ee, #3b82f6);
-            color: #0a1929;
+            color: #060a13;
             border: none;
-            padding: 15px 30px;
-            font-size: 16px;
+            padding: 12px 24px;
+            font-size: 14px;
             font-weight: bold;
             border-radius: 10px;
             cursor: pointer;
-            margin: 10px;
+            margin: 6px;
         }
-        button:hover { opacity: 0.9; }
-        .preview { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
-        .icon-container { text-align: center; }
+        button:hover { opacity: 0.85; }
+        .preview { display: flex; gap: 30px; flex-wrap: wrap; justify-content: center; margin-top: 20px; }
+        .icon-container { text-align: center; color: #94a3b8; font-size: 13px; }
+        .dl-all {
+            margin-top: 30px;
+            font-size: 16px;
+            padding: 16px 36px;
+            background: linear-gradient(to right, #a855f7, #3b82f6);
+        }
+        .instructions {
+            margin-top: 24px;
+            padding: 16px 24px;
+            background: rgba(34,211,238,0.08);
+            border: 1px solid rgba(34,211,238,0.2);
+            border-radius: 12px;
+            color: #94a3b8;
+            font-size: 13px;
+            max-width: 600px;
+            text-align: center;
+            line-height: 1.7;
+        }
+        .instructions strong { color: #22d3ee; }
     </style>
 </head>
 <body>
     <h1>PyDeck Icon Generator</h1>
-    <p>Py logo with π (Pi) symbol background</p>
+    <p>Holo Fan card design (P · Y · D · E · C · K)</p>
 
     <div class="preview">
         <div class="icon-container">
-            <p>192x192 (Android)</p>
-            <canvas id="icon192" width="192" height="192"></canvas>
-            <br>
-            <button onclick="downloadIcon('icon192', 'icon-192.png')">Download 192x192</button>
-        </div>
-
-        <div class="icon-container">
-            <p>512x512 (Android)</p>
+            <p>512×512 · Android</p>
             <canvas id="icon512" width="512" height="512"></canvas>
-            <br>
-            <button onclick="downloadIcon('icon512', 'icon-512.png')">Download 512x512</button>
+            <button onclick="dl('icon512','icon-512.png')">⬇ Download 512×512</button>
         </div>
-
         <div class="icon-container">
-            <p>180x180 (iOS)</p>
+            <p>192×192 · Android</p>
+            <canvas id="icon192" width="192" height="192"></canvas>
+            <button onclick="dl('icon192','icon-192.png')">⬇ Download 192×192</button>
+        </div>
+        <div class="icon-container">
+            <p>180×180 · iOS</p>
             <canvas id="icon180" width="180" height="180"></canvas>
-            <br>
-            <button onclick="downloadIcon('icon180', 'apple-touch-icon.png')">Download iOS Icon</button>
+            <button onclick="dl('icon180','apple-touch-icon.png')">⬇ Download iOS Icon</button>
         </div>
-
         <div class="icon-container">
-            <p>Favicon 32x32</p>
+            <p>32×32 · Favicon</p>
             <canvas id="favicon" width="32" height="32"></canvas>
-            <br>
-            <button onclick="downloadIcon('favicon', 'favicon.png')">Download Favicon</button>
+            <button onclick="dl('favicon','favicon.png')">⬇ Download Favicon</button>
         </div>
     </div>
 
-    <button onclick="downloadAll()" style="margin-top: 30px; font-size: 18px;">📥 Download All Icons</button>
+    <button class="dl-all" onclick="dlAll()">📥 Download All Icons</button>
+
+    <div class="instructions">
+        After downloading, move all 4 files into<br>
+        <strong>frontend/public/</strong> replacing the existing icons.<br>
+        Then rebuild or restart the dev server to see them take effect.
+    </div>
 
     <script>
+        const CARDS = [
+            { letter: 'P', g: ['#1e3a8a', '#2563eb', '#3b82f6'], glow: 'rgba(59,130,246,0.92)' },
+            { letter: 'Y', g: ['#78350f', '#d97706', '#f59e0b'], glow: 'rgba(245,158,11,0.92)' },
+            { letter: 'D', g: ['#1a1a2e', '#374151', '#6b7280'], glow: 'rgba(107,114,128,0.80)' },
+            { letter: 'E', g: ['#064e3b', '#059669', '#10b981'], glow: 'rgba(16,185,129,0.92)' },
+            { letter: 'C', g: ['#7c2d12', '#ea580c', '#f97316'], glow: 'rgba(249,115,22,0.92)' },
+            { letter: 'K', g: ['#4c1d95', '#7c3aed', '#a855f7'], glow: 'rgba(168,85,247,0.92)' },
+        ]
+
+        // Draw a rounded rectangle path
+        function rr(ctx, x, y, w, h, r) {
+            ctx.beginPath()
+            ctx.moveTo(x + r, y)
+            ctx.lineTo(x + w - r, y)
+            ctx.quadraticCurveTo(x + w, y, x + w, y + r)
+            ctx.lineTo(x + w, y + h - r)
+            ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h)
+            ctx.lineTo(x + r, y + h)
+            ctx.quadraticCurveTo(x, y + h, x, y + h - r)
+            ctx.lineTo(x, y + r)
+            ctx.quadraticCurveTo(x, y, x + r, y)
+            ctx.closePath()
+        }
+
         function drawIcon(canvas) {
-            const ctx = canvas.getContext('2d');
-            const size = canvas.width;
+            const ctx = canvas.getContext('2d')
+            const S = canvas.width
 
-            // Background - dark navy to light navy gradient
-            const bgGradient = ctx.createLinearGradient(0, 0, size, size);
-            bgGradient.addColorStop(0, '#1e3a5f');
-            bgGradient.addColorStop(0.5, '#2d5a8a');
-            bgGradient.addColorStop(1, '#0a1929');
-            ctx.fillStyle = bgGradient;
-            ctx.fillRect(0, 0, size, size);
+            // ── Background ──────────────────────────────
+            const bg = ctx.createRadialGradient(S * 0.5, S * 0.38, 0, S * 0.5, S * 0.5, S * 0.80)
+            bg.addColorStop(0, '#111827')
+            bg.addColorStop(1, '#060a13')
+            ctx.fillStyle = bg
+            ctx.fillRect(0, 0, S, S)
 
-            // Large Pi symbol in background (watermark style)
-            ctx.fillStyle = 'rgba(34, 211, 238, 0.15)'; // Cyan with low opacity
-            ctx.font = `bold ${size * 0.8}px Georgia, serif`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('π', size / 2, size / 2);
+            // ── Card sizing ──────────────────────────────
+            const cW = S * 0.23    // card width  (was 0.158)
+            const cH = S * 0.33    // card height (was 0.225)
+            const cr = S * 0.034   // corner radius
 
-            // Glow effect for "Py"
-            ctx.shadowColor = '#22d3ee';
-            ctx.shadowBlur = size * 0.05;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 0;
+            // Fan pivot center
+            const fanX = S * 0.5
+            const fanY = S * 0.66
 
-            // "Py" text - main logo
-            const pyGradient = ctx.createLinearGradient(0, size * 0.3, 0, size * 0.7);
-            pyGradient.addColorStop(0, '#3b82f6'); // Blue
-            pyGradient.addColorStop(0.5, '#8b5cf6'); // Purple
-            pyGradient.addColorStop(1, '#22d3ee'); // Cyan
-            ctx.fillStyle = pyGradient;
-            ctx.font = `bold ${size * 0.45}px Arial, sans-serif`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('Py', size / 2, size / 2);
+            // Draw back-to-front: outer cards first, center cards on top
+            const drawOrder = [0, 5, 1, 4, 2, 3]
 
-            // Remove shadow for border
-            ctx.shadowBlur = 0;
+            drawOrder.forEach(i => {
+                const card = CARDS[i]
+                const pos   = i - 2.5
+                const aPos  = Math.abs(pos)
+                const angle = pos * 11 * Math.PI / 180
 
-            // Decorative border
-            ctx.strokeStyle = '#22d3ee';
-            ctx.lineWidth = size * 0.025;
-            ctx.strokeRect(size * 0.05, size * 0.05, size * 0.9, size * 0.9);
+                // Card center before rotation
+                const cx = fanX + pos * S * 0.118
+                const cy = fanY + aPos * S * 0.034 - S * 0.034
 
-            // Inner subtle border
-            ctx.strokeStyle = 'rgba(59, 130, 246, 0.3)';
-            ctx.lineWidth = size * 0.015;
-            ctx.strokeRect(size * 0.08, size * 0.08, size * 0.84, size * 0.84);
+                const pivX = cx
+                const pivY = cy + cH * 0.5
+
+                ctx.save()
+                ctx.translate(pivX, pivY)
+                ctx.rotate(angle)
+                ctx.translate(-pivX, -pivY)
+
+                const x = cx - cW * 0.5
+                const y = cy - cH * 0.5
+
+                // Card gradient
+                const grad = ctx.createLinearGradient(x, y, x + cW, y + cH)
+                grad.addColorStop(0,    card.g[0])
+                grad.addColorStop(0.55, card.g[1])
+                grad.addColorStop(1,    card.g[2])
+
+                // Glow
+                ctx.shadowColor = card.glow
+                ctx.shadowBlur  = S * 0.055
+
+                ctx.fillStyle = grad
+                rr(ctx, x, y, cW, cH, cr)
+                ctx.fill()
+
+                // Glowing border
+                ctx.shadowBlur = 0
+                ctx.strokeStyle = card.glow
+                ctx.lineWidth   = S * 0.004
+                rr(ctx, x, y, cW, cH, cr)
+                ctx.stroke()
+
+                // Foil sheen overlay
+                const foil = ctx.createLinearGradient(x, y, x + cW, y + cH)
+                foil.addColorStop(0,    'rgba(255,255,255,0.15)')
+                foil.addColorStop(0.45, 'rgba(255,255,255,0)')
+                foil.addColorStop(1,    'rgba(255,255,255,0.07)')
+                ctx.fillStyle = foil
+                rr(ctx, x, y, cW, cH, cr)
+                ctx.fill()
+
+                // Letter
+                ctx.shadowColor = card.glow
+                ctx.shadowBlur  = S * 0.048
+                ctx.fillStyle   = '#ffffff'
+                ctx.font        = `900 ${Math.round(S * 0.082)}px Inter, Arial, sans-serif`
+                ctx.textAlign   = 'center'
+                ctx.textBaseline = 'middle'
+                ctx.fillText(card.letter, cx, cy)
+                ctx.shadowBlur = 0
+
+                ctx.restore()
+            })
+
+            // Ambient glow beneath the fan
+            const glow = ctx.createRadialGradient(S * 0.5, S * 0.80, 0, S * 0.5, S * 0.80, S * 0.50)
+            glow.addColorStop(0, 'rgba(59,130,246,0.12)')
+            glow.addColorStop(1, 'rgba(0,0,0,0)')
+            ctx.fillStyle = glow
+            ctx.fillRect(0, 0, S, S)
         }
 
-        // Draw all icons
-        ['icon192', 'icon512', 'icon180', 'favicon'].forEach(id => {
-            drawIcon(document.getElementById(id));
-        });
+        // Render all canvases
+        ;['icon512', 'icon192', 'icon180', 'favicon'].forEach(id => {
+            drawIcon(document.getElementById(id))
+        })
 
-        function downloadIcon(canvasId, filename) {
-            const canvas = document.getElementById(canvasId);
-            const link = document.createElement('a');
-            link.download = filename;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
+        function dl(canvasId, filename) {
+            const a = document.createElement('a')
+            a.download = filename
+            a.href = document.getElementById(canvasId).toDataURL('image/png')
+            a.click()
         }
 
-        function downloadAll() {
-            setTimeout(() => downloadIcon('icon192', 'icon-192.png'), 100);
-            setTimeout(() => downloadIcon('icon512', 'icon-512.png'), 300);
-            setTimeout(() => downloadIcon('icon180', 'apple-touch-icon.png'), 500);
-            setTimeout(() => downloadIcon('favicon', 'favicon.png'), 700);
-            alert('✅ All icons downloaded! Now move them to frontend/public/ folder');
+        function dlAll() {
+            setTimeout(() => dl('icon192',  'icon-192.png'),          100)
+            setTimeout(() => dl('icon512',  'icon-512.png'),          300)
+            setTimeout(() => dl('icon180',  'apple-touch-icon.png'),  500)
+            setTimeout(() => dl('favicon',  'favicon.png'),           700)
+            setTimeout(() => alert('✅ All 4 icons downloaded!\n\nMove them to frontend/public/ replacing the existing files.'), 900)
         }
     </script>
 </body>

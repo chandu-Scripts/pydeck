@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import CreateFlashcardModal from '../components/CreateFlashcardModal'
 import CommunityChatModal from '../components/CommunityChatModal'
+import CardShuffleLoader from '../components/CardShuffleLoader'
 
 export default function CommunityFlashcards() {
   const [flashcards, setFlashcards] = useState([])
@@ -207,7 +208,10 @@ export default function CommunityFlashcards() {
   // Landing page - show Create and View options
   if (!showFlashcards) {
     return (
-      <div className="px-5 py-8 min-h-screen">
+      <div
+        className="fixed inset-0 overflow-hidden flex flex-col px-5 py-8"
+        style={{ paddingTop: `calc(env(safe-area-inset-top) + 2rem)`, paddingBottom: `calc(env(safe-area-inset-bottom) + 2rem)` }}
+      >
         <div className="flex items-center justify-between mb-8">
           <button
             onClick={() => navigate('/')}
@@ -288,16 +292,15 @@ export default function CommunityFlashcards() {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
+    return <CardShuffleLoader />
   }
 
   if (flashcards.length === 0) {
     return (
-      <div className="px-5 py-8">
+      <div
+        className="fixed inset-0 overflow-hidden flex flex-col px-5 py-8"
+        style={{ paddingTop: `calc(env(safe-area-inset-top) + 2rem)`, paddingBottom: `calc(env(safe-area-inset-bottom) + 2rem)` }}
+      >
         <div className="flex items-center justify-between mb-6">
           <button
             onClick={() => setShowFlashcards(false)}
@@ -354,7 +357,10 @@ export default function CommunityFlashcards() {
   const isQA = currentCard?.type === 'qa'
 
   return (
-    <div className="px-5 py-8 min-h-screen">
+    <div
+      className="fixed inset-0 overflow-hidden flex flex-col px-5"
+      style={{ paddingTop: `calc(env(safe-area-inset-top) + 1.5rem)`, paddingBottom: `calc(env(safe-area-inset-bottom) + 1rem)` }}
+    >
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <button
@@ -426,10 +432,10 @@ export default function CommunityFlashcards() {
         </div>
       </div>
 
-      <h1 className="text-2xl font-bold text-white mb-6">Community Flashcards</h1>
+      <h1 className="text-2xl font-bold text-white mb-3">Community Flashcards</h1>
 
       {/* Type Filter Buttons */}
-      <div className="flex gap-3 mb-6">
+      <div className="flex gap-3 mb-3 shrink-0">
         <button
           onClick={() => handleFilterChange('mcq')}
           className={`flex-1 py-3 rounded-xl font-semibold text-sm transition-all ${
@@ -467,20 +473,20 @@ export default function CommunityFlashcards() {
 
       {/* Show message when no filter selected */}
       {!filterType ? (
-        <div className="text-center mt-20">
+        <div className="flex-1 flex flex-col items-center justify-center text-center">
           <p className="text-gray-400 text-lg mb-2">Select a flashcard type to view</p>
           <p className="text-gray-500 text-sm">Click MCQ or Q/A above to start practicing</p>
         </div>
       ) : filteredFlashcards.length === 0 ? (
-        <div className="text-center mt-20">
+        <div className="flex-1 flex flex-col items-center justify-center text-center">
           <p className="text-gray-400 text-lg">No {filterType === 'mcq' ? 'MCQ' : 'Q/A'} flashcards yet</p>
           <p className="text-gray-500 text-sm mt-2">Be the first to create one!</p>
         </div>
       ) : isQA ? (
         /* Q/A Type - Simple Card (No Flip) */
-        <div className="relative mb-6">
+        <div className="flex-1 flex flex-col min-h-0 mb-2">
           <motion.div
-            className={`w-full bg-gradient-to-b from-navy-600/90 to-navy-700/90 backdrop-blur-xl border-2 ${getColorClasses(cardColor).border} rounded-3xl p-6 shadow-2xl`}
+            className={`flex-1 min-h-0 overflow-y-auto scrollbar-hide w-full bg-gradient-to-b from-navy-600/90 to-navy-700/90 backdrop-blur-xl border-2 ${getColorClasses(cardColor).border} rounded-3xl p-6 shadow-2xl`}
             style={{
               boxShadow: `0 0 40px ${getColorClasses(cardColor).shadow}, inset 0 0 20px ${getColorClasses(cardColor).shadow}`,
             }}
@@ -523,7 +529,7 @@ export default function CommunityFlashcards() {
           </motion.div>
 
           {/* Previous/Next Navigation for Q/A */}
-          <div className="flex items-center justify-between gap-4 mt-4">
+          <div className="flex items-center justify-between gap-4 mt-3 shrink-0">
             <button
               onClick={handlePrevious}
               disabled={currentIndex === 0}
@@ -546,8 +552,8 @@ export default function CommunityFlashcards() {
         </div>
       ) : (
         /* MCQ Type - 3D Flip Card */
-        <div>
-        <div className="relative h-[500px] flex items-center justify-center mb-6" style={{ perspective: '1000px' }}>
+        <div className="flex-1 flex flex-col min-h-0">
+        <div className="relative flex-1 min-h-0 mb-3" style={{ perspective: '1000px' }}>
         <div
           style={{
             width: '100%',
@@ -691,7 +697,7 @@ export default function CommunityFlashcards() {
         </div>
 
         {/* Previous/Next Navigation for MCQ */}
-        <div className="flex items-center justify-between gap-4 mt-4">
+        <div className="flex items-center justify-between gap-4 shrink-0">
           <button
             onClick={handlePrevious}
             disabled={currentIndex === 0}

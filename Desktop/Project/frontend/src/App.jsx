@@ -1,3 +1,4 @@
+import { Component } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import { useAuth } from './contexts/AuthContext'
@@ -16,16 +17,26 @@ import Analytics from './pages/Analytics'
 import Profile from './pages/Profile'
 import CommunityFlashcards from './pages/CommunityFlashcards'
 import AdminPanel from './pages/AdminPanel'
+import CardShuffleLoader from './components/CardShuffleLoader'
+import ErrorScreen from './components/ErrorScreen'
+
+class ErrorBoundary extends Component {
+  state = { hasError: false }
+  static getDerivedStateFromError() { return { hasError: true } }
+  componentDidCatch(err) { console.error('App error:', err) }
+  render() {
+    if (this.state.hasError) {
+      return <ErrorScreen onRetry={() => { this.setState({ hasError: false }); window.location.reload() }} />
+    }
+    return this.props.children
+  }
+}
 
 function ProtectedRoute({ children }) {
   const { user, loading, isBlocked } = useAuth()
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-navy-900">
-        <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
+    return <CardShuffleLoader />
   }
 
   if (!user) return <Navigate to="/login" />
@@ -37,6 +48,7 @@ function App() {
   const location = useLocation()
 
   return (
+    <ErrorBoundary>
     <AnimatePresence mode="wait" initial={false}>
       <Routes location={location} key={location.pathname}>
         <Route path="/login" element={<Login />} />
@@ -65,6 +77,7 @@ function App() {
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </AnimatePresence>
+    </ErrorBoundary>
   )
 }
 

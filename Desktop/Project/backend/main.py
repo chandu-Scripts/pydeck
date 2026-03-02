@@ -5,12 +5,13 @@ from routes.topics import router as topics_router
 from routes.flashcards import router as flashcards_router
 from routes.progress import router as progress_router
 from routes.analytics import router as analytics_router
+from routes.otp import router as otp_router
 
 app = FastAPI(title="PyDeck API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -21,6 +22,7 @@ app.include_router(topics_router, prefix="/api/topics", tags=["Topics"])
 app.include_router(flashcards_router, prefix="/api/flashcards", tags=["Flashcards"])
 app.include_router(progress_router, prefix="/api/progress", tags=["Progress"])
 app.include_router(analytics_router, prefix="/api/analytics", tags=["Analytics"])
+app.include_router(otp_router, prefix="/api/otp", tags=["OTP"])
 
 
 @app.get("/")

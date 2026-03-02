@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { ArrowLeft, Bookmark, RotateCcw } from 'lucide-react'
 import { springConfigs, buttonTap, buttonHover } from '../utils/animations'
+import CardShuffleLoader from '../components/CardShuffleLoader'
 
 export default function Flashcard() {
   const { topicId } = useParams()
@@ -82,11 +83,7 @@ export default function Flashcard() {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
+    return <CardShuffleLoader />
   }
 
   if (cards.length === 0) {

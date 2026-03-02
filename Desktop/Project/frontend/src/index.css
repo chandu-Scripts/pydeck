@@ -10,6 +10,59 @@
   --color-cyan-400: #22d3ee;
   --color-cyan-500: #06b6d4;
   --color-cyan-600: #0891b2;
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+}
+
+.border-beam {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  border: 2px solid transparent;
+  border-radius: inherit;
+  background: conic-gradient(from 0deg at 50% 50%, transparent 0deg, var(--beam-color, #22d3ee) 60deg, transparent 120deg) border-box;
+  mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  animation: spin var(--beam-duration, 4s) linear infinite;
+}
+
+@property --login-beam-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes login-beam-travel {
+  to { --login-beam-angle: 360deg; }
+}
+
+
+/* Beam sits OUTSIDE the 3D flip — absolutely positioned behind the card */
+.login-card-beam {
+  pointer-events: none;
+  border-radius: 1rem;
+  background: conic-gradient(
+    from var(--login-beam-angle),
+    rgba(59, 130, 246, 0.40) 0deg,
+    rgba(59, 130, 246, 0.40) 325deg,
+    rgba(96, 165, 250, 0.80) 340deg,
+    rgba(147, 197, 253, 1)   352deg,
+    rgba(255, 255, 255, 1)   356deg,
+    rgba(147, 197, 253, 1)   358deg,
+    rgba(59, 130, 246, 0.40) 360deg
+  );
+  animation: login-beam-travel 6s linear infinite;
+}
+
+/* Inner card: fully opaque dark bg — blocks everything behind it */
+.login-card-inner {
+  border-radius: calc(1rem - 1.5px);
+  background: #060a13;
+  height: 100%;
+  box-sizing: border-box;
 }
 
 body {
@@ -32,16 +85,12 @@ body {
 }
 
 ::-webkit-scrollbar {
-  width: 6px;
+  display: none;
 }
 
-::-webkit-scrollbar-track {
-  background: #0a0e1a;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #1a2440;
-  border-radius: 3px;
+* {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 .scrollbar-hide::-webkit-scrollbar {

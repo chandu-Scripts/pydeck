@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { ArrowLeft, Check, X, AlertCircle, Users, BarChart3, Edit, Shield, ShieldX, Plus } from 'lucide-react'
+import { ArrowLeft, Check, X, AlertCircle, Users, BarChart3, Edit, Shield, ShieldX } from 'lucide-react'
 import { buttonTap } from '../utils/animations'
+import CardShuffleLoader from '../components/CardShuffleLoader'
 
 export default function AdminPanel() {
   const { isAdmin, profile } = useAuth()
@@ -29,23 +30,6 @@ export default function AdminPanel() {
     type: 'mcq'
   })
 
-  // Quiz Creation State
-  const [paths, setPaths] = useState([])
-  const [topics, setTopics] = useState([])
-  const [subtopics, setSubtopics] = useState([])
-  const [selectedPathId, setSelectedPathId] = useState('')
-  const [selectedTopicId, setSelectedTopicId] = useState('')
-  const [selectedSubtopicId, setSelectedSubtopicId] = useState('')
-  const [quizForm, setQuizForm] = useState({
-    question: '',
-    option_a: '',
-    option_b: '',
-    option_c: '',
-    option_d: '',
-    correct_option: '',
-    explanation: ''
-  })
-  const [submittingQuiz, setSubmittingQuiz] = useState(false)
 
   useEffect(() => {
     if (!isAdmin) {
@@ -56,30 +40,8 @@ export default function AdminPanel() {
     fetchAnalytics()
     fetchUsers()
     fetchAppeals()
-    fetchPaths()
   }, [isAdmin, navigate])
 
-  // Fetch topics when path is selected
-  useEffect(() => {
-    if (selectedPathId) {
-      fetchTopics(selectedPathId)
-      setSelectedTopicId('')
-      setSelectedSubtopicId('')
-    } else {
-      setTopics([])
-      setSubtopics([])
-    }
-  }, [selectedPathId])
-
-  // Fetch subtopics when topic is selected
-  useEffect(() => {
-    if (selectedTopicId) {
-      fetchSubtopics(selectedTopicId)
-      setSelectedSubtopicId('')
-    } else {
-      setSubtopics([])
-    }
-  }, [selectedTopicId])
 
   async function fetchFlashcards() {
     // Fetch pending flashcards
@@ -117,10 +79,11 @@ export default function AdminPanel() {
   }
 
   async function fetchAnalytics() {
-    // Get total users
+    // Get total users (excluding guests)
     const { count: totalUsers } = await supabase
       .from('profiles')
       .select('*', { count: 'exact', head: true })
+      .neq('role', 'guest')
 
     // Get active users (studied in last 7 days)
     const sevenDaysAgo = new Date()
@@ -174,6 +137,7 @@ export default function AdminPanel() {
     const { data } = await supabase
       .from('profiles')
       .select('*')
+      .neq('role', 'guest')
       .order('created_at', { ascending: false })
 
     // Note: Email is stored in auth.users (private)
@@ -285,112 +249,8 @@ export default function AdminPanel() {
     fetchUsers()
   }
 
-  // Quiz Creation Functions
-  async function fetchPaths() {
-    const { data } = await supabase
-      .from('paths')
-      .select('*')
-      .order('display_order', { ascending: true })
-
-    setPaths(data || [])
-  }
-
-  async function fetchTopics(pathId) {
-    const { data } = await supabase
-      .from('topics')
-      .select('*')
-      .eq('path_id', pathId)
-      .order('display_order', { ascending: true })
-
-    setTopics(data || [])
-  }
-
-  async function fetchSubtopics(topicId) {
-    const { data } = await supabase
-      .from('subtopics')
-      .select('*')
-      .eq('topic_id', topicId)
-      .order('display_order', { ascending: true })
-
-    setSubtopics(data || [])
-  }
-
-  async function handleSubmitQuiz() {
-    // Validate all fields
-    if (!selectedSubtopicId) {
-      alert('Please select a subtopic')
-      return
-    }
-
-    if (!quizForm.question.trim()) {
-      alert('Please enter a question')
-      return
-    }
-
-    if (!quizForm.option_a.trim() || !quizForm.option_b.trim() ||
-        !quizForm.option_c.trim() || !quizForm.option_d.trim()) {
-      alert('Please fill in all 4 options')
-      return
-    }
-
-    if (!quizForm.correct_option || !['a', 'b', 'c', 'd'].includes(quizForm.correct_option)) {
-      alert('Please select the correct answer')
-      return
-    }
-
-    if (!quizForm.explanation.trim()) {
-      alert('Please add an explanation')
-      return
-    }
-
-    setSubmittingQuiz(true)
-
-    const { error } = await supabase
-      .from('flashcards')
-      .insert({
-        topic_id: selectedTopicId, // Required field
-        subtopic_id: selectedSubtopicId,
-        question: quizForm.question.trim(),
-        answer: quizForm.explanation.trim(), // Store explanation in answer field
-        explanation: quizForm.explanation.trim(),
-        option_a: quizForm.option_a.trim(),
-        option_b: quizForm.option_b.trim(),
-        option_c: quizForm.option_c.trim(),
-        option_d: quizForm.option_d.trim(),
-        correct_option: quizForm.correct_option,
-        card_type: 'mcq'
-      })
-
-    setSubmittingQuiz(false)
-
-    if (error) {
-      console.error('Error creating quiz:', error)
-      alert('Error creating quiz: ' + error.message)
-      return
-    }
-
-    // Success - reset form
-    alert('Quiz flashcard created successfully!')
-    setQuizForm({
-      question: '',
-      option_a: '',
-      option_b: '',
-      option_c: '',
-      option_d: '',
-      correct_option: '',
-      explanation: ''
-    })
-    setSelectedPathId('')
-    setSelectedTopicId('')
-    setSelectedSubtopicId('')
-  }
-
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
+    return <CardShuffleLoader />
   }
 
   const displayCards = activeTab === 'pending' ? pendingCards : activeTab === 'approved' ? approvedCards : []
@@ -408,7 +268,7 @@ export default function AdminPanel() {
 
       {/* Analytics Dashboard */}
       {analytics && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-3 gap-4 mb-6">
           <motion.div
             onClick={() => setShowUsersModal(true)}
             className="relative bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/30 rounded-xl p-4 cursor-pointer hover:border-cyan-500/50 transition-colors"
@@ -433,14 +293,6 @@ export default function AdminPanel() {
             <p className="text-cyan-400/70 text-xs mt-1">Click to view all</p>
           </motion.div>
 
-          <div className="bg-gradient-to-br from-emerald-500/20 to-green-500/20 border border-emerald-500/30 rounded-xl p-4">
-            <div className="flex items-center gap-3 mb-2">
-              <BarChart3 size={20} className="text-emerald-400" />
-              <p className="text-emerald-400 text-xs font-semibold uppercase">Active (7d)</p>
-            </div>
-            <p className="text-white text-2xl font-bold">{analytics.activeUsers}</p>
-          </div>
-
           <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-xl p-4">
             <div className="flex items-center gap-3 mb-2">
               <Check size={20} className="text-purple-400" />
@@ -460,7 +312,7 @@ export default function AdminPanel() {
       )}
 
       {/* Tabs */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-6">
         <button
           onClick={() => setActiveTab('pending')}
           className={`py-3 rounded-xl font-semibold transition-all ${
@@ -501,229 +353,10 @@ export default function AdminPanel() {
         >
           Appeals ({appeals.length})
         </button>
-        <button
-          onClick={() => setActiveTab('quiz')}
-          className={`py-3 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'quiz'
-              ? 'bg-purple-500/20 border-2 border-purple-500/40 text-purple-400'
-              : 'bg-navy-700/50 border-2 border-white/10 text-gray-400'
-          }`}
-        >
-          <Plus size={18} />
-          Quiz
-        </button>
       </div>
 
-      {/* Quiz Creation Form */}
-      {activeTab === 'quiz' ? (
-        <div className="pb-24">
-          <motion.div
-            className="bg-gradient-to-b from-navy-700/50 to-navy-800/50 border border-purple-500/20 rounded-2xl p-6 max-w-3xl mx-auto"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-white/10">
-              <Plus size={24} className="text-purple-400" />
-              <h2 className="text-xl font-bold text-white">Create Quiz Flashcard</h2>
-            </div>
-
-            {/* Cascading Dropdowns */}
-            <div className="space-y-4 mb-6">
-              {/* Learning Path Dropdown */}
-              <div>
-                <label className="text-cyan-400 text-sm font-semibold mb-2 block">
-                  1. Select Learning Path
-                </label>
-                <select
-                  value={selectedPathId}
-                  onChange={(e) => setSelectedPathId(e.target.value)}
-                  className="w-full px-4 py-3 bg-navy-700 border border-white/10 rounded-xl text-white"
-                >
-                  <option value="">Choose a path...</option>
-                  {paths.map((path) => (
-                    <option key={path.id} value={path.id}>
-                      {path.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Topic Dropdown */}
-              <div>
-                <label className="text-cyan-400 text-sm font-semibold mb-2 block">
-                  2. Select Topic
-                </label>
-                <select
-                  value={selectedTopicId}
-                  onChange={(e) => setSelectedTopicId(e.target.value)}
-                  disabled={!selectedPathId}
-                  className="w-full px-4 py-3 bg-navy-700 border border-white/10 rounded-xl text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <option value="">Choose a topic...</option>
-                  {topics.map((topic) => (
-                    <option key={topic.id} value={topic.id}>
-                      {topic.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Subtopic Dropdown */}
-              <div>
-                <label className="text-cyan-400 text-sm font-semibold mb-2 block">
-                  3. Select Subtopic
-                </label>
-                <select
-                  value={selectedSubtopicId}
-                  onChange={(e) => setSelectedSubtopicId(e.target.value)}
-                  disabled={!selectedTopicId}
-                  className="w-full px-4 py-3 bg-navy-700 border border-white/10 rounded-xl text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <option value="">Choose a subtopic...</option>
-                  {subtopics.map((subtopic) => (
-                    <option key={subtopic.id} value={subtopic.id}>
-                      {subtopic.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Only show form if subtopic is selected */}
-            {selectedSubtopicId && (
-              <motion.div
-                className="space-y-4"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                transition={{ duration: 0.3 }}
-              >
-                <div className="h-px bg-gradient-to-r from-transparent via-purple-500/30 to-transparent mb-6" />
-
-                {/* Question */}
-                <div>
-                  <label className="text-cyan-400 text-sm font-semibold mb-2 block">
-                    Question
-                  </label>
-                  <textarea
-                    value={quizForm.question}
-                    onChange={(e) => setQuizForm({ ...quizForm, question: e.target.value })}
-                    placeholder="Enter the quiz question..."
-                    className="w-full px-4 py-3 bg-navy-700 border border-white/10 rounded-xl text-white resize-none"
-                    rows={3}
-                  />
-                </div>
-
-                {/* Options */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-cyan-400 text-sm font-semibold mb-2 block">
-                      Option A
-                    </label>
-                    <input
-                      type="text"
-                      value={quizForm.option_a}
-                      onChange={(e) => setQuizForm({ ...quizForm, option_a: e.target.value })}
-                      placeholder="First option..."
-                      className="w-full px-4 py-3 bg-navy-700 border border-white/10 rounded-xl text-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-cyan-400 text-sm font-semibold mb-2 block">
-                      Option B
-                    </label>
-                    <input
-                      type="text"
-                      value={quizForm.option_b}
-                      onChange={(e) => setQuizForm({ ...quizForm, option_b: e.target.value })}
-                      placeholder="Second option..."
-                      className="w-full px-4 py-3 bg-navy-700 border border-white/10 rounded-xl text-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-cyan-400 text-sm font-semibold mb-2 block">
-                      Option C
-                    </label>
-                    <input
-                      type="text"
-                      value={quizForm.option_c}
-                      onChange={(e) => setQuizForm({ ...quizForm, option_c: e.target.value })}
-                      placeholder="Third option..."
-                      className="w-full px-4 py-3 bg-navy-700 border border-white/10 rounded-xl text-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-cyan-400 text-sm font-semibold mb-2 block">
-                      Option D
-                    </label>
-                    <input
-                      type="text"
-                      value={quizForm.option_d}
-                      onChange={(e) => setQuizForm({ ...quizForm, option_d: e.target.value })}
-                      placeholder="Fourth option..."
-                      className="w-full px-4 py-3 bg-navy-700 border border-white/10 rounded-xl text-white"
-                    />
-                  </div>
-                </div>
-
-                {/* Correct Answer */}
-                <div>
-                  <label className="text-cyan-400 text-sm font-semibold mb-2 block">
-                    Correct Answer
-                  </label>
-                  <select
-                    value={quizForm.correct_option}
-                    onChange={(e) => setQuizForm({ ...quizForm, correct_option: e.target.value })}
-                    className="w-full px-4 py-3 bg-navy-700 border border-white/10 rounded-xl text-white"
-                  >
-                    <option value="">Select correct answer...</option>
-                    <option value="a">A</option>
-                    <option value="b">B</option>
-                    <option value="c">C</option>
-                    <option value="d">D</option>
-                  </select>
-                </div>
-
-                {/* Explanation */}
-                <div>
-                  <label className="text-cyan-400 text-sm font-semibold mb-2 block">
-                    Explanation
-                  </label>
-                  <textarea
-                    value={quizForm.explanation}
-                    onChange={(e) => setQuizForm({ ...quizForm, explanation: e.target.value })}
-                    placeholder="Explain why this answer is correct..."
-                    className="w-full px-4 py-3 bg-navy-700 border border-white/10 rounded-xl text-white resize-none"
-                    rows={3}
-                  />
-                </div>
-
-                {/* Submit Button */}
-                <motion.button
-                  onClick={handleSubmitQuiz}
-                  disabled={submittingQuiz}
-                  className="w-full py-3 rounded-xl bg-purple-500/20 border border-purple-500/30 text-purple-400 font-semibold hover:bg-purple-500/30 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  whileTap={submittingQuiz ? {} : buttonTap}
-                >
-                  {submittingQuiz ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    <>
-                      <Check size={18} />
-                      Create Quiz Flashcard
-                    </>
-                  )}
-                </motion.button>
-              </motion.div>
-            )}
-          </motion.div>
-        </div>
-      ) : activeTab === 'appeals' ? (
+      {/* Tab Content */}
+      {activeTab === 'appeals' ? (
         <div className="space-y-4 pb-24">
           {appeals.length === 0 ? (
             <div className="text-center mt-20">

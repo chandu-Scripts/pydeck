@@ -1,11 +1,12 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion'
+import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { ArrowLeft, RotateCcw, Zap, RefreshCcw, CheckCircle } from 'lucide-react'
 import confetti from 'canvas-confetti'
 import { springConfigs, buttonTap } from '../utils/animations'
+import CardShuffleLoader from '../components/CardShuffleLoader'
 
 const optionLabels = ['A', 'B', 'C', 'D']
 const optionKeys = ['option_a', 'option_b', 'option_c', 'option_d']
@@ -234,12 +235,28 @@ export default function RecallSession() {
     }
   }
 
+  function handleNext() {
+    if (currentIndex < queue.length - 1) {
+      x.set(0)
+      setCurrentIndex(prev => prev + 1)
+      setSelectedOption(null)
+      setShowResult(false)
+      setIsCorrect(false)
+    }
+  }
+
+  function handlePrevious() {
+    if (currentIndex > 0) {
+      x.set(0)
+      setCurrentIndex(prev => prev - 1)
+      setSelectedOption(null)
+      setShowResult(false)
+      setIsCorrect(false)
+    }
+  }
+
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
+    return <CardShuffleLoader />
   }
 
   if (queue.length === 0) {
@@ -276,7 +293,7 @@ export default function RecallSession() {
   )
 
   return (
-    <div className="min-h-screen flex flex-col bg-navy-900">
+    <div className="fixed inset-0 flex flex-col bg-navy-900 overflow-hidden" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4">
         <button onClick={() => navigate('/analytics')} className="text-gray-400 hover:text-white transition-colors cursor-pointer">
@@ -376,7 +393,7 @@ export default function RecallSession() {
       </div>
 
       {/* Progress bar */}
-      <div className="px-5 mb-6">
+      <div className="px-5 mb-3">
         <div className="h-1 bg-navy-700 rounded-full overflow-hidden">
           <motion.div
             className="h-full bg-gradient-to-r from-red-500 to-red-400 rounded-full"
@@ -387,9 +404,24 @@ export default function RecallSession() {
         </div>
       </div>
 
+      {/* Stats strip */}
+      <div className="px-5 mb-4 flex justify-center gap-2">
+        <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+          <span className="text-emerald-400 text-xs font-semibold">{stats.mastered} Mastered</span>
+        </div>
+        <div className="flex items-center gap-1.5 px-3 py-1 bg-red-500/10 border border-red-500/20 rounded-lg">
+          <div className="w-1.5 h-1.5 rounded-full bg-red-400" />
+          <span className="text-red-400 text-xs font-semibold">{stats.recall} Recall</span>
+        </div>
+        <div className="flex items-center gap-1.5 px-3 py-1 bg-navy-700/50 border border-white/10 rounded-lg">
+          <span className="text-gray-400 text-xs font-semibold">{queue.length} Left</span>
+        </div>
+      </div>
+
       {/* Centered Flashcard */}
       <div className="flex-1 flex items-center justify-center px-5 pb-8">
-        <div className="w-full max-w-lg">
+        <div className="w-full max-w-md">
           {/* Swipe Hint - Just Above Card */}
           {showResult && (
             <motion.div
@@ -409,7 +441,7 @@ export default function RecallSession() {
 
           <div style={{ perspective: '2500px' }}>
             <motion.div
-              className="relative w-full min-h-[500px]"
+              className="relative w-full min-h-[420px]"
               style={{
                 transformStyle: 'preserve-3d',
                 boxShadow: showResult
@@ -439,6 +471,21 @@ export default function RecallSession() {
                   boxShadow: '0 0 40px rgba(239, 68, 68, 0.3), inset 0 0 20px rgba(239, 68, 68, 0.1)',
                 }}
               >
+                {/* Difficulty badge */}
+                {card.difficulty && (
+                  <div className="absolute top-4 right-4">
+                    <span className={`text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${
+                      card.difficulty === 'easy'
+                        ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
+                        : card.difficulty === 'medium'
+                        ? 'text-amber-400 bg-amber-500/10 border-amber-500/30'
+                        : 'text-red-400 bg-red-500/10 border-red-500/30'
+                    }`}>
+                      {card.difficulty}
+                    </span>
+                  </div>
+                )}
+
                 <div className="mb-6">
                   <span className="text-[11px] uppercase tracking-widest text-red-400 mb-3 block">
                     Recall Question
@@ -499,19 +546,20 @@ export default function RecallSession() {
                     opacity,
                   }}
                   drag="x"
-                  dragConstraints={{ left: -200, right: 200 }}
-                  dragElastic={0.2}
+                  dragConstraints={{ left: 0, right: 0 }}
+                  dragElastic={0.9}
                   onDragEnd={(e, { offset, velocity }) => {
-                    const swipeThreshold = 100
+                    const swipeThreshold = 80
+                    const isFlick = Math.abs(velocity.x) > 400
 
-                    if (offset.x < -swipeThreshold) {
-                      x.set(-500, { type: 'spring', velocity: velocity.x, stiffness: 300, damping: 30 })
+                    if (offset.x < -swipeThreshold || (isFlick && velocity.x < 0)) {
+                      animate(x, -window.innerWidth, { type: 'spring', stiffness: 200, damping: 25, velocity: velocity.x })
                       handleSwipe('left')
-                    } else if (offset.x > swipeThreshold) {
-                      x.set(500, { type: 'spring', velocity: velocity.x, stiffness: 300, damping: 30 })
+                    } else if (offset.x > swipeThreshold || (isFlick && velocity.x > 0)) {
+                      animate(x, window.innerWidth, { type: 'spring', stiffness: 200, damping: 25, velocity: velocity.x })
                       handleSwipe('right')
                     } else {
-                      x.set(0, { type: 'spring', stiffness: 500, damping: 30 })
+                      animate(x, 0, { type: 'spring', stiffness: 500, damping: 35 })
                     }
                   }}
                 >
@@ -640,16 +688,39 @@ export default function RecallSession() {
             </motion.div>
           </div>
 
-          {/* Stats */}
+          {/* Previous / Next Navigation */}
           <motion.div
-            className="flex justify-center gap-6 mt-6"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            className="flex items-center justify-between gap-4 mt-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
           >
-            <span className="text-sm text-emerald-400">{stats.mastered} mastered</span>
-            <span className="text-sm text-red-400">{stats.recall} recall</span>
-            <span className="text-sm text-gray-400">{queue.length} left</span>
+            <motion.button
+              onClick={handlePrevious}
+              disabled={currentIndex === 0}
+              className={`flex-1 py-3 rounded-xl font-semibold transition-all ${
+                currentIndex === 0
+                  ? 'bg-gray-700/30 border border-gray-600/30 text-gray-500 cursor-not-allowed'
+                  : 'bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 cursor-pointer'
+              }`}
+              whileHover={currentIndex === 0 ? {} : { scale: 1.02 }}
+              whileTap={currentIndex === 0 ? {} : buttonTap}
+            >
+              ← Previous
+            </motion.button>
+            <motion.button
+              onClick={handleNext}
+              disabled={currentIndex === queue.length - 1}
+              className={`flex-1 py-3 rounded-xl font-semibold transition-all ${
+                currentIndex === queue.length - 1
+                  ? 'bg-gray-700/30 border border-gray-600/30 text-gray-500 cursor-not-allowed'
+                  : 'bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 cursor-pointer'
+              }`}
+              whileHover={currentIndex === queue.length - 1 ? {} : { scale: 1.02 }}
+              whileTap={currentIndex === queue.length - 1 ? {} : buttonTap}
+            >
+              Next →
+            </motion.button>
           </motion.div>
         </div>
       </div>

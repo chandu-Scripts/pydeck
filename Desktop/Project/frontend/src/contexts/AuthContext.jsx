@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabase'
 
 const AuthContext = createContext({})
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
+
 export const useAuth = () => useContext(AuthContext)
 
 export function AuthProvider({ children }) {
@@ -90,10 +92,11 @@ export function AuthProvider({ children }) {
     } else {
       const newProfile = {
         id: userId,
-        username: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User',
+        username: user?.is_anonymous ? 'Guest' : (user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'),
         avatar_url: user?.user_metadata?.avatar_url || null,
         email: user?.email || null,
         status: 'active',
+        role: user?.is_anonymous ? 'guest' : 'user',
         streak: 0,
         points: 0,
       }
@@ -122,28 +125,121 @@ export function AuthProvider({ children }) {
     setProfile(null)
   }
 
-  async function signInWithPhone(phone) {
-    const { data, error } = await supabase.auth.signInWithOtp({
-      phone: phone,
+async function signUpWithEmail(email, password, name) {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { full_name: name } },
     })
-    if (error) {
-      console.error('Error sending OTP:', error.message)
-      return { error }
-    }
+    return { data, error }
+  }
+
+  async function signInWithEmail(email, password) {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    return { data, error }
+  }
+
+  async function verifyEmailOtp(email, token) {
+    const { data, error } = await supabase.auth.verifyOtp({ email, token, type: 'signup' })
+    return { data, error }
+  }
+
+  async function signInWithPhone(phone) {
+    const { data, error } = await supabase.auth.signInWithOtp({ phone })
+    if (error) return { error }
     return { data }
   }
 
   async function verifyOtp(phone, token) {
-    const { data, error } = await supabase.auth.verifyOtp({
-      phone: phone,
-      token: token,
-      type: 'sms',
-    })
-    if (error) {
-      console.error('Error verifying OTP:', error.message)
-      return { error }
-    }
+    const { data, error } = await supabase.auth.verifyOtp({ phone, token, type: 'sms' })
+    if (error) return { error }
     return { data }
+  }
+
+  async function signInWithEmailOtp(email) {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/otp/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      const data = await res.json()
+      if (!res.ok) return { error: { message: data.detail || 'Failed to send OTP' } }
+      return { data }
+    } catch {
+      return { error: { message: 'Network error. Please try again.' } }
+    }
+  }
+
+  async function checkEmailExists(email) {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/otp/check-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      const data = await res.json()
+      return data.exists ?? false
+    } catch {
+      return false
+    }
+  }
+
+  async function createAccountWithOtp(email, code, password, name) {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/otp/create-account`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code, password, name }),
+      })
+      const data = await res.json()
+      if (!res.ok) return { error: { message: data.detail || 'Failed to create account' } }
+      const { data: authData, error } = await supabase.auth.verifyOtp({
+        token_hash: data.hashed_token,
+        type: 'magiclink',
+      })
+      if (error) return { error }
+      // Set password so user can sign in with email+password later
+      await supabase.auth.updateUser({ password })
+      return { data: authData }
+    } catch {
+      return { error: { message: 'Network error. Please try again.' } }
+    }
+  }
+
+  async function verifyOtpOnly(email, code) {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/otp/verify-only`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code }),
+      })
+      const data = await res.json()
+      if (!res.ok) return { error: { message: data.detail || 'Invalid code' } }
+      return { data }
+    } catch {
+      return { error: { message: 'Network error. Please try again.' } }
+    }
+  }
+
+  async function verifyEmailSignInOtp(email, code) {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/otp/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code }),
+      })
+      const data = await res.json()
+      if (!res.ok) return { error: { message: data.detail || 'Invalid code' } }
+      const { data: authData, error } = await supabase.auth.verifyOtp({
+        token_hash: data.hashed_token,
+        type: 'magiclink',
+      })
+      if (error) return { error }
+      return { data: authData }
+    } catch {
+      return { error: { message: 'Network error. Please try again.' } }
+    }
   }
 
   const value = {
@@ -153,8 +249,16 @@ export function AuthProvider({ children }) {
     isAdmin: profile?.role === 'admin',
     isBlocked: profile?.status === 'blocked',
     signInWithGoogle,
+    signUpWithEmail,
+    signInWithEmail,
+    verifyEmailOtp,
     signInWithPhone,
     verifyOtp,
+    signInWithEmailOtp,
+    verifyEmailSignInOtp,
+    verifyOtpOnly,
+    createAccountWithOtp,
+    checkEmailExists,
     signOut,
     refreshProfile: () => user && fetchProfile(user.id),
   }

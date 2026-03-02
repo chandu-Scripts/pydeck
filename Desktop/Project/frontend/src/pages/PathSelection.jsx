@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { ChevronRight, Code, Layers, Cpu, Database, Users, Menu } from 'lucide-react'
@@ -9,6 +9,8 @@ import { buttonTap } from '../utils/animations'
 import PathCarousel from '../components/PathCarousel'
 import PathListModal from '../components/PathListModal'
 import NotificationBell from '../components/NotificationBell'
+import CardShuffleLoader from '../components/CardShuffleLoader'
+import ErrorScreen from '../components/ErrorScreen'
 
 const pathIcons = {
   'Python': SiPython,
@@ -54,24 +56,108 @@ function getGreeting() {
   const hour = new Date().getHours()
 
   if (hour >= 6 && hour < 12) {
-    return { text: 'Good morning', emoji: '☀️' }
+    return 'Good morning'
   } else if (hour >= 12 && hour < 18) {
-    return { text: 'Good evening', emoji: '🌅' }
+    return 'Good afternoon'
+  } else if (hour >= 18 && hour < 21) {
+    return 'Good evening'
   } else {
-    return { text: 'Knight Rider', emoji: '🧑‍🎓' }
+    return 'Knight Rider'
   }
+}
+
+const TIPS = [
+  { text: 'Python is the #1 language for AI & data science',           color: '#22d3ee' },
+  { text: 'Every expert was once a complete beginner — start now',      color: '#a855f7' },
+  { text: 'Master DSA and crack top tech interviews with confidence',   color: '#f59e0b' },
+  { text: 'Flask & Django power millions of web apps worldwide',        color: '#10b981' },
+  { text: 'NumPy makes numerical operations 100× faster',               color: '#f97316' },
+  { text: 'Consistent daily practice beats marathon study sessions',    color: '#ec4899' },
+  { text: 'Python reads like plain English — perfect for beginners',    color: '#3b82f6' },
+  { text: 'pandas turns messy data into powerful insights instantly',   color: '#8b5cf6' },
+  { text: '30 minutes a day can make you job-ready in 6 months',       color: '#f43f5e' },
+  { text: 'Python is used by Google, NASA, Netflix & Instagram',       color: '#84cc16' },
+  { text: 'Your streak is proof of your discipline — keep it alive!',  color: '#22d3ee' },
+  { text: 'OOP makes your code cleaner, reusable & scalable',          color: '#f59e0b' },
+  { text: 'Small progress every day leads to big results over time',   color: '#10b981' },
+  { text: 'Algorithms are just recipes — Python makes them elegant',   color: '#a855f7' },
+  { text: 'Spaced repetition rewires your brain for long-term memory', color: '#3b82f6' },
+  { text: 'Django lets you build full web apps in record time',         color: '#f97316' },
+  { text: 'Every line of code you write makes you 1% better',          color: '#f43f5e' },
+  { text: 'Flashcards are the secret weapon of top students worldwide', color: '#84cc16' },
+]
+
+const pathTipColors = {
+  'Python':  '#3b82f6',
+  'MySQL':   '#f59e0b',
+  'Flask':   '#9ca3af',
+  'Django':  '#10b981',
+  'NumPy':   '#f97316',
+  'Pandas':  '#a855f7',
+}
+
+function RotatingTip({ color = '#22d3ee' }) {
+  const [index, setIndex] = useState(0)
+
+  useEffect(() => {
+    const t = setInterval(() => setIndex(i => (i + 1) % TIPS.length), 10000)
+    return () => clearInterval(t)
+  }, [])
+
+  return (
+    <div style={{
+      background: `${color}12`,
+      border: `1px solid ${color}30`,
+      borderRadius: 12,
+      padding: '8px 14px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      transition: 'background 0.8s ease, border-color 0.8s ease',
+      overflow: 'hidden',
+    }}>
+      <div style={{
+        width: 6, height: 6, borderRadius: '50%',
+        background: color,
+        boxShadow: `0 0 8px ${color}`,
+        flexShrink: 0,
+        transition: 'background 0.8s ease, box-shadow 0.8s ease',
+      }} />
+      <div style={{ flex: 1, overflow: 'hidden', position: 'relative', height: 18 }}>
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={index}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+            style={{
+              color, fontSize: 11, lineHeight: 1.6,
+              margin: 0, fontWeight: 500,
+              textShadow: `0 0 16px ${color}60`,
+              transition: 'color 0.8s ease',
+              position: 'absolute', width: '100%',
+              whiteSpace: 'nowrap', overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {TIPS[index].text}
+          </motion.p>
+        </AnimatePresence>
+      </div>
+    </div>
+  )
 }
 
 export default function PathSelection() {
   const [paths, setPaths] = useState([])
   const [topicCounts, setTopicCounts] = useState({})
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+  const [retryCount, setRetryCount] = useState(0)
   const [showPathList, setShowPathList] = useState(false)
   const [currentPathIndex, setCurrentPathIndex] = useState(0)
-  const [orbitMode, setOrbitMode] = useState(() => {
-    const saved = sessionStorage.getItem('orbitMode')
-    return saved === null ? true : saved === 'true'
-  })
+  const [frontCard, setFrontCard] = useState(null)
   const navigate = useNavigate()
   const { profile } = useAuth()
 
@@ -79,40 +165,56 @@ export default function PathSelection() {
 
   useEffect(() => {
     async function fetchPathsAndTopics() {
-      // Fetch paths
-      const { data: pathsData } = await supabase
-        .from('paths')
-        .select('*')
-        .order('display_order')
-
-      // Fetch all topics to count per path
-      const { data: topicsData } = await supabase
-        .from('topics')
-        .select('id, path_id')
-
-      // Count topics per path
-      const counts = {}
-      topicsData?.forEach(topic => {
-        counts[topic.path_id] = (counts[topic.path_id] || 0) + 1
-      })
-
-      setPaths(pathsData || [])
-      setTopicCounts(counts)
-      setLoading(false)
+      try {
+        const [pathsRes, topicsRes] = await Promise.all([
+          supabase.from('paths').select('*').order('display_order'),
+          supabase.from('topics').select('id, path_id'),
+        ])
+        if (pathsRes.error) throw pathsRes.error
+        const counts = {}
+        topicsRes.data?.forEach(topic => {
+          counts[topic.path_id] = (counts[topic.path_id] || 0) + 1
+        })
+        setPaths(pathsRes.data || [])
+        setTopicCounts(counts)
+        setLoading(false)
+      } catch (e) {
+        console.error('PathSelection fetch error:', e)
+        setError(true)
+        setLoading(false)
+      }
     }
     fetchPathsAndTopics()
-  }, [])
+  }, [retryCount]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
-  }
+  if (loading) return <CardShuffleLoader />
+  if (error) return <ErrorScreen onRetry={() => { setError(false); setLoading(true); setRetryCount(c => c + 1) }} />
 
   return (
-    <div className="relative px-5 py-8 lg:py-12 overflow-hidden">
+    <div className="fixed inset-0 px-5 py-6 lg:py-10 overflow-hidden" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1.5rem)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 1rem)' }}>
+      {/* Aurora background — color matches the selected holo fan card */}
+      {(() => {
+        const auroraColors = {
+          'Python':  'rgba(59,130,246,0.18)',
+          'MySQL':   'rgba(245,158,11,0.18)',
+          'Flask':   'rgba(156,163,175,0.15)',
+          'Django':  'rgba(16,185,129,0.18)',
+          'NumPy':   'rgba(249,115,22,0.18)',
+          'Pandas':  'rgba(168,85,247,0.18)',
+        }
+        return Object.entries(auroraColors).map(([name, color]) => (
+          <div
+            key={name}
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: `radial-gradient(ellipse 85% 50% at 50% 25%, ${color} 0%, transparent 70%)`,
+              opacity: frontCard?.name === name ? 1 : 0,
+              transition: 'opacity 1.2s ease',
+            }}
+          />
+        ))
+      })()}
+
       {/* Starfield Background */}
       <div className="absolute inset-0 pointer-events-none">
         {/* Stars */}
@@ -134,7 +236,13 @@ export default function PathSelection() {
       </div>
 
       {/* Content */}
-      <div className="relative z-10">
+      <div className="relative z-10 h-full flex flex-col">
+
+      {/* Rotating motivational tip — colour follows the front carousel card */}
+      <div className="mb-4">
+        <RotatingTip color={pathTipColors[frontCard?.name] ?? '#22d3ee'} />
+      </div>
+
       <motion.div
         className="mb-8 flex items-start justify-between"
         initial={{ opacity: 0, y: -20 }}
@@ -143,7 +251,7 @@ export default function PathSelection() {
       >
         <div>
           <p className="text-cyan-400 text-sm font-medium">
-            {greeting.text} {greeting.emoji}
+            {greeting}
           </p>
           <h1 className="text-3xl lg:text-4xl font-bold text-white mt-1">
             {profile?.username || 'Focus'}
@@ -152,38 +260,6 @@ export default function PathSelection() {
 
         {/* Right side controls */}
         <div className="flex items-center gap-3">
-          {/* Orbit Mode Toggle */}
-          <motion.button
-            onClick={() => {
-                const next = !orbitMode
-                setOrbitMode(next)
-                sessionStorage.setItem('orbitMode', next)
-              }}
-            className={`relative w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
-              orbitMode
-                ? 'bg-gradient-to-br from-purple-500/30 to-pink-500/30 border-2 border-purple-500/50'
-                : 'bg-navy-700/50 border border-cyan-500/30'
-            }`}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            title={orbitMode ? 'Disable Orbit Mode' : 'Enable Orbit Mode'}
-          >
-            <motion.div
-              animate={{ rotate: orbitMode ? 360 : 0 }}
-              transition={{ duration: 2, repeat: orbitMode ? Infinity : 0, ease: 'linear' }}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={orbitMode ? 'text-purple-400' : 'text-cyan-400'}>
-                <circle cx="12" cy="12" r="3" />
-                <circle cx="12" cy="12" r="10" strokeDasharray="2 4" />
-                <circle cx="12" cy="5" r="1.5" fill="currentColor" />
-                <circle cx="19" cy="12" r="1.5" fill="currentColor" />
-                <circle cx="12" cy="19" r="1.5" fill="currentColor" />
-                <circle cx="5" cy="12" r="1.5" fill="currentColor" />
-              </svg>
-            </motion.div>
-          </motion.button>
-
-          {/* Notification Bell */}
           <NotificationBell />
         </div>
       </motion.div>
@@ -203,7 +279,8 @@ export default function PathSelection() {
           topicCounts={topicCounts}
           onPathClick={(path) => navigate(`/paths/${path.id}`)}
           onIndexChange={setCurrentPathIndex}
-          orbitMode={orbitMode}
+          orbitMode={true}
+          onFrontCardChange={setFrontCard}
         />
 
         {/* View All Button - Below Carousel */}
@@ -242,7 +319,7 @@ export default function PathSelection() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.4 }}
-        className="max-w-md mx-auto mt-28 mb-8"
+        className="max-w-md mx-auto mt-auto mb-20"
       >
         <motion.button
           onClick={() => navigate('/community')}

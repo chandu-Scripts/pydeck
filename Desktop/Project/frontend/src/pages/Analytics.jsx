@@ -6,6 +6,7 @@ import { ArrowLeft, Flame, Trophy, RotateCcw, ChevronRight, Crown, Medal } from 
 import { useNavigate } from 'react-router-dom'
 import { SimpleAnimatedNumber } from '../components/ui/AnimatedNumber'
 import { staggerContainer, staggerItem, buttonHover, buttonTap } from '../utils/animations'
+import CardShuffleLoader from '../components/CardShuffleLoader'
 
 // Module-level cache — persists across navigations in same session
 // Stores both static data (paths/topics/cards) and user data per userId
@@ -153,7 +154,7 @@ export default function Analytics() {
   }
 
   function getHeatmapData() {
-    const days = 30
+    const days = 14
     const grid = []
     const sessionMap = {}
     sessions.forEach(s => { sessionMap[s.date] = s.cards_studied })
@@ -163,30 +164,22 @@ export default function Analytics() {
       const d = new Date()
       d.setDate(d.getDate() - i)
       const dateStr = d.toISOString().split('T')[0]
-      const isToday = dateStr === today
       grid.push({
         date: dateStr,
         count: sessionMap[dateStr] || 0,
-        isToday,
+        isToday: dateStr === today,
+        day: d.toLocaleDateString('en', { weekday: 'short' }).charAt(0),
       })
     }
     return grid
   }
 
-  function getIntensity(count, isToday) {
-    // Simple: green if studied, neutral if not
-    if (count > 0) {
-      return 'bg-emerald-500'
-    }
-    return 'bg-navy-700/30'
+  function getIntensity(count) {
+    return count > 0 ? 'bg-emerald-500' : 'bg-navy-700/40'
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
+    return <CardShuffleLoader />
   }
 
   const heatmap = getHeatmapData()
@@ -434,13 +427,20 @@ export default function Analytics() {
       <div className="bg-navy-700/40 backdrop-blur-sm border border-white/5 rounded-2xl p-5 mb-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-semibold text-white">Activity</h2>
-          <span className="text-xs text-gray-500">Last 30 Days</span>
+          <span className="text-xs text-gray-500">Last 14 Days</span>
         </div>
-        <div className="grid grid-cols-10 gap-[3px]">
+        {/* Day labels */}
+        <div className="grid grid-cols-7 gap-2 mb-1">
+          {heatmap.slice(0, 7).map((cell, idx) => (
+            <div key={idx} className="text-center text-[10px] text-gray-600 font-medium">{cell.day}</div>
+          ))}
+        </div>
+        {/* Squares */}
+        <div className="grid grid-cols-7 gap-2">
           {heatmap.map((cell, idx) => (
             <div
               key={idx}
-              className={`w-full h-3 lg:h-4 rounded-sm ${getIntensity(cell.count, cell.isToday)}`}
+              className={`aspect-square rounded-md ${getIntensity(cell.count)}`}
               title={`${cell.date}: ${cell.count} cards`}
             />
           ))}
