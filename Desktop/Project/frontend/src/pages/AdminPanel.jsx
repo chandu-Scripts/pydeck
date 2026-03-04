@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { ArrowLeft, Check, X, AlertCircle, Users, BarChart3, Edit, Shield, ShieldX } from 'lucide-react'
+import { ArrowLeft, Check, X, AlertCircle, Users, BarChart3, Edit, Shield, ShieldX, Megaphone, Send } from 'lucide-react'
 import { buttonTap } from '../utils/animations'
 import CardShuffleLoader from '../components/CardShuffleLoader'
 
@@ -19,6 +19,9 @@ export default function AdminPanel() {
   const [appeals, setAppeals] = useState([])
   const [editingCard, setEditingCard] = useState(null)
   const [showUsersModal, setShowUsersModal] = useState(false)
+  const [announceForm, setAnnounceForm] = useState({ title: '', message: '' })
+  const [announceStatus, setAnnounceStatus] = useState(null) // { type: 'success'|'error', text: string }
+  const [announceSending, setAnnounceSending] = useState(false)
   const [editForm, setEditForm] = useState({
     question: '',
     option_a: '',
@@ -249,11 +252,50 @@ export default function AdminPanel() {
     fetchUsers()
   }
 
+  async function handleAnnounce() {
+    const title = announceForm.title.trim()
+    const message = announceForm.message.trim()
+    if (!title || !message) {
+      setAnnounceStatus({ type: 'error', text: 'Please fill in both title and message.' })
+      return
+    }
+    setAnnounceSending(true)
+    setAnnounceStatus(null)
+
+    try {
+      // 1. Email all active users via backend
+      const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
+      const res = await fetch(`${BACKEND_URL}/api/notifications/send-update`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, message }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.detail || 'Email send failed')
+
+      // 2. Create in-app notification for all users
+      await supabase.from('admin_notifications').insert({
+        title,
+        message,
+        created_by: profile.id,
+        is_poll: false,
+      })
+
+      setAnnounceStatus({ type: 'success', text: `Announcement sent! Emailed ${data.sent} users.` })
+      setAnnounceForm({ title: '', message: '' })
+    } catch (e) {
+      setAnnounceStatus({ type: 'error', text: e.message })
+    } finally {
+      setAnnounceSending(false)
+    }
+  }
+
   if (loading) {
     return <CardShuffleLoader />
   }
 
   const displayCards = activeTab === 'pending' ? pendingCards : activeTab === 'approved' ? approvedCards : []
+
 
   return (
     <div className="min-h-screen px-5 py-6">
@@ -312,7 +354,7 @@ export default function AdminPanel() {
       )}
 
       {/* Tabs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 mb-6">
         <button
           onClick={() => setActiveTab('pending')}
           className={`py-3 rounded-xl font-semibold transition-all ${
@@ -353,10 +395,85 @@ export default function AdminPanel() {
         >
           Appeals ({appeals.length})
         </button>
+        <button
+          onClick={() => setActiveTab('announce')}
+          className={`py-3 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 col-span-2 lg:col-span-1 ${
+            activeTab === 'announce'
+              ? 'bg-purple-500/20 border-2 border-purple-500/40 text-purple-400'
+              : 'bg-navy-700/50 border-2 border-white/10 text-gray-400'
+          }`}
+        >
+          <Megaphone size={16} />
+          Announce
+        </button>
       </div>
 
       {/* Tab Content */}
-      {activeTab === 'appeals' ? (
+      {activeTab === 'announce' ? (
+        <div className="max-w-lg pb-24">
+          <div className="bg-gradient-to-b from-navy-700/50 to-navy-800/50 border border-purple-500/20 rounded-2xl p-6 space-y-4">
+            <div className="flex items-center gap-3 mb-2">
+              <Megaphone size={20} className="text-purple-400" />
+              <h2 className="text-white font-bold text-lg">Send Announcement</h2>
+            </div>
+            <p className="text-gray-400 text-sm">Emails all active users and creates an in-app notification.</p>
+
+            <div>
+              <label className="text-purple-400 text-sm font-semibold mb-2 block">Title</label>
+              <input
+                type="text"
+                value={announceForm.title}
+                onChange={(e) => setAnnounceForm({ ...announceForm, title: e.target.value })}
+                placeholder="e.g., New MySQL Path Added!"
+                className="w-full px-4 py-3 bg-navy-700 border border-white/10 rounded-xl text-white"
+                maxLength={100}
+              />
+            </div>
+
+            <div>
+              <label className="text-purple-400 text-sm font-semibold mb-2 block">Message</label>
+              <textarea
+                value={announceForm.message}
+                onChange={(e) => setAnnounceForm({ ...announceForm, message: e.target.value })}
+                placeholder="e.g., We've added 200+ new MySQL flashcards covering joins, indexes, and more!"
+                className="w-full px-4 py-3 bg-navy-700 border border-white/10 rounded-xl text-white resize-none"
+                rows={4}
+                maxLength={500}
+              />
+              <p className="text-gray-500 text-xs mt-1">{announceForm.message.length}/500 characters</p>
+            </div>
+
+            {announceStatus && (
+              <div className={`p-3 rounded-xl border text-sm font-medium ${
+                announceStatus.type === 'success'
+                  ? 'bg-green-500/10 border-green-500/30 text-green-400'
+                  : 'bg-red-500/10 border-red-500/30 text-red-400'
+              }`}>
+                {announceStatus.text}
+              </div>
+            )}
+
+            <motion.button
+              onClick={handleAnnounce}
+              disabled={announceSending}
+              className="w-full py-3 rounded-xl bg-purple-500/20 border border-purple-500/30 text-purple-400 font-semibold hover:bg-purple-500/30 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              whileTap={announceSending ? {} : buttonTap}
+            >
+              {announceSending ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Send size={18} />
+                  Send to All Users
+                </>
+              )}
+            </motion.button>
+          </div>
+        </div>
+      ) : activeTab === 'appeals' ? (
         <div className="space-y-4 pb-24">
           {appeals.length === 0 ? (
             <div className="text-center mt-20">

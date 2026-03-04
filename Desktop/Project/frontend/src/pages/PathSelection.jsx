@@ -100,7 +100,7 @@ function RotatingTip({ color = '#22d3ee' }) {
   const [index, setIndex] = useState(0)
 
   useEffect(() => {
-    const t = setInterval(() => setIndex(i => (i + 1) % TIPS.length), 10000)
+    const t = setInterval(() => setIndex(i => (i + 1) % TIPS.length), 5000)
     return () => clearInterval(t)
   }, [])
 
