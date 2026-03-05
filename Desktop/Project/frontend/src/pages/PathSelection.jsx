@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { ChevronRight, Code, Layers, Cpu, Database, Users, Menu } from 'lucide-react'
+import { ChevronRight, Code, Layers, Cpu, Database, Users, Menu, RefreshCw } from 'lucide-react'
+import { useAppUpdate } from '../hooks/useAppUpdate'
 import { SiPython, SiMysql, SiFlask, SiDjango, SiNumpy, SiPandas } from 'react-icons/si'
 import { buttonTap } from '../utils/animations'
 import PathCarousel from '../components/PathCarousel'
@@ -160,6 +161,7 @@ export default function PathSelection() {
   const [frontCard, setFrontCard] = useState(null)
   const navigate = useNavigate()
   const { profile } = useAuth()
+  const { needRefresh, applyUpdate, dismiss } = useAppUpdate()
 
   const greeting = getGreeting()
 
@@ -239,9 +241,34 @@ export default function PathSelection() {
       <div className="relative z-10 h-full flex flex-col">
 
       {/* Rotating motivational tip — colour follows the front carousel card */}
-      <div className="mb-4">
+      <div className="mb-2">
         <RotatingTip color={pathTipColors[frontCard?.name] ?? '#22d3ee'} />
       </div>
+
+      {/* Update banner below quotes */}
+      <AnimatePresence>
+        {needRefresh && (
+          <motion.div
+            className="mb-3"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30">
+              <RefreshCw size={14} className="text-cyan-400 flex-shrink-0" />
+              <p className="flex-1 text-xs text-cyan-300 font-medium">New update available!</p>
+              <button
+                onClick={applyUpdate}
+                className="px-3 py-1 rounded-lg bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 text-xs font-semibold"
+              >
+                Refresh
+              </button>
+              <button onClick={dismiss} className="text-gray-500 hover:text-white transition-colors text-xs">✕</button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <motion.div
         className="mb-8 flex items-start justify-between"

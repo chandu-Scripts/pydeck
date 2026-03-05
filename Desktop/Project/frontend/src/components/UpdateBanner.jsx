@@ -1,9 +1,9 @@
-import { useRegisterSW } from 'virtual:pwa-register/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { RefreshCw, X } from 'lucide-react'
+import { useAppUpdate } from '../hooks/useAppUpdate'
 
 export default function UpdateBanner() {
-  const { needRefresh: [needRefresh, setNeedRefresh], updateServiceWorker } = useRegisterSW()
+  const { needRefresh, applyUpdate, dismiss } = useAppUpdate()
 
   if (!needRefresh) return null
 
@@ -23,19 +23,14 @@ export default function UpdateBanner() {
           <div className="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center flex-shrink-0">
             <RefreshCw size={16} className="text-cyan-400" />
           </div>
-          <p className="flex-1 text-sm text-white font-medium">
-            New update available!
-          </p>
+          <p className="flex-1 text-sm text-white font-medium">New update available!</p>
           <button
-            onClick={() => updateServiceWorker(true)}
+            onClick={applyUpdate}
             className="px-3 py-1.5 rounded-lg bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 text-sm font-semibold hover:bg-cyan-500/30 transition-colors"
           >
             Refresh
           </button>
-          <button
-            onClick={() => setNeedRefresh(false)}
-            className="text-gray-500 hover:text-white transition-colors"
-          >
+          <button onClick={dismiss} className="text-gray-500 hover:text-white transition-colors">
             <X size={16} />
           </button>
         </div>
