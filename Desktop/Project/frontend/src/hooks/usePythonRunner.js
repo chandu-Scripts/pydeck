@@ -18,17 +18,24 @@ export function usePythonRunner() {
         body: JSON.stringify({
           language: 'python',
           version: '3.10.0',
-          files: [{ content: code }],
+          files: [{ name: 'main.py', content: code }],
         }),
       })
+
+      if (!res.ok) {
+        setOutput(`Error: Server returned ${res.status}`)
+        setError(true)
+        return
+      }
+
       const data = await res.json()
-      const stdout = data.run?.stdout ?? ''
-      const stderr = data.run?.stderr ?? ''
-      const out = (stdout + stderr).trim()
+
+      // Piston returns data.run.output which combines stdout + stderr
+      const out = data.run?.output?.trim() || data.run?.stdout?.trim() || data.run?.stderr?.trim() || ''
       setOutput(out || '(no output)')
-      if (stderr) setError(true)
-    } catch {
-      setOutput('Network error — could not reach the code runner.')
+      if (data.run?.stderr?.trim()) setError(true)
+    } catch (e) {
+      setOutput('Network error — could not reach the code runner.\n' + e.message)
       setError(true)
     } finally {
       setRunning(false)
