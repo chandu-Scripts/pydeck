@@ -4,7 +4,7 @@ from email.mime.multipart import MIMEMultipart
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from db import supabase
-from config import GMAIL_USER, GMAIL_APP_PASSWORD
+from config import GMAIL_USER, GMAIL_APP_PASSWORD, FRONTEND_URL
 
 router = APIRouter()
 
@@ -42,7 +42,7 @@ async def send_update(req: AnnouncementRequest):
         <h3 style="color: #ffffff; font-size: 20px; margin-bottom: 12px;">{title}</h3>
         <p style="color: #94a3b8; line-height: 1.6; font-size: 15px;">{message}</p>
         <div style="margin-top: 32px; text-align: center;">
-            <a href="https://pydeck.app" style="display: inline-block; padding: 12px 28px; background: #22d3ee; color: #060a13; font-weight: bold; border-radius: 10px; text-decoration: none; font-size: 15px;">
+            <a href="{FRONTEND_URL}" style="display: inline-block; padding: 12px 28px; background: #22d3ee; color: #060a13; font-weight: bold; border-radius: 10px; text-decoration: none; font-size: 15px;">
                 Open PyDeck
             </a>
         </div>
