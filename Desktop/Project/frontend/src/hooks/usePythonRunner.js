@@ -12,30 +12,22 @@ export function usePythonRunner() {
     setOutput('')
 
     try {
-      const res = await fetch('https://emkc.org/api/v2/piston/execute', {
+      // Piston v1 — no auth required
+      const res = await fetch('https://emkc.org/api/v1/piston/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          language: 'python',
-          version: '3.10.0',
-          files: [{ name: 'main.py', content: code }],
+          language: 'python3',
+          source: code,
         }),
       })
 
-      if (!res.ok) {
-        setOutput(`Error: Server returned ${res.status}`)
-        setError(true)
-        return
-      }
-
       const data = await res.json()
-
-      // Piston returns data.run.output which combines stdout + stderr
-      const out = data.run?.output?.trim() || data.run?.stdout?.trim() || data.run?.stderr?.trim() || ''
+      const out = (data.output || '').trim()
       setOutput(out || '(no output)')
-      if (data.run?.stderr?.trim()) setError(true)
+      if (data.stderr) setError(true)
     } catch (e) {
-      setOutput('Network error — could not reach the code runner.\n' + e.message)
+      setOutput('Could not connect to code runner. Please try again.')
       setError(true)
     } finally {
       setRunning(false)
