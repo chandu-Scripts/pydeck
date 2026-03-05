@@ -1,9 +1,10 @@
 import { NavLink } from 'react-router-dom'
-import { Home, BarChart3, User } from 'lucide-react'
+import { Home, BarChart3, User, Terminal } from 'lucide-react'
 
 const navItems = [
   { to: '/paths', icon: Home, label: 'Home' },
   { to: '/analytics', icon: BarChart3, label: 'Analytics' },
+  { to: '/playground', icon: Terminal, label: 'Code' },
   { to: '/profile', icon: User, label: 'Profile' },
 ]
 

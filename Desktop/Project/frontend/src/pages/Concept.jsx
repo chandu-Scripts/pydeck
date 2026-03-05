@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
-import { ArrowLeft, ChevronLeft, ChevronRight, BookOpen } from 'lucide-react'
+import { ArrowLeft, ChevronLeft, ChevronRight, BookOpen, Terminal, ChevronDown } from 'lucide-react'
+import CodeEditor from '../components/CodeEditor'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { buttonHover, buttonTap } from '../utils/animations'
@@ -137,6 +138,7 @@ export default function Concept() {
   const [concepts, setConcepts] = useState([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [showEditor, setShowEditor] = useState(false)
 
   useEffect(() => {
     async function fetchData() {
@@ -180,6 +182,13 @@ export default function Concept() {
   const isFirst = currentIndex === 0
   const isLast = currentIndex === concepts.length - 1
 
+  // Extract first Python code block from current concept
+  const firstCodeBlock = (() => {
+    const parsed = parseMarkdownToComponents(concept.content)
+    const codeComp = parsed.find(c => c.type === 'code')
+    return codeComp ? codeComp.content : '# Write your Python here\n'
+  })()
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
@@ -222,6 +231,42 @@ export default function Concept() {
         >
           <h1 className="text-xl font-bold text-white mb-6">{concept.title}</h1>
           <MarkdownRenderer content={concept.content} />
+
+          {/* Try it in Editor */}
+          <div className="mt-6 mb-4">
+            <button
+              onClick={() => setShowEditor(v => !v)}
+              className="flex items-center gap-2 w-full px-4 py-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 font-semibold hover:bg-cyan-500/15 transition-colors"
+            >
+              <Terminal size={16} />
+              Try it in Editor
+              <motion.div
+                className="ml-auto"
+                animate={{ rotate: showEditor ? 180 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ChevronDown size={16} />
+              </motion.div>
+            </button>
+            <AnimatePresence>
+              {showEditor && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="overflow-hidden mt-3"
+                >
+                  <CodeEditor
+                    key={currentIndex}
+                    initialCode={firstCodeBlock}
+                    height="250px"
+                    compact
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </motion.div>
       </div>
 

@@ -17,6 +17,7 @@ import Analytics from './pages/Analytics'
 import Profile from './pages/Profile'
 import CommunityFlashcards from './pages/CommunityFlashcards'
 import AdminPanel from './pages/AdminPanel'
+import Playground from './pages/Playground'
 import CardShuffleLoader from './components/CardShuffleLoader'
 import ErrorScreen from './components/ErrorScreen'
 import UpdateBanner from './components/UpdateBanner'
@@ -74,6 +75,7 @@ function App() {
           <Route path="profile" element={<Profile />} />
           <Route path="community" element={<CommunityFlashcards />} />
           <Route path="admin" element={<AdminPanel />} />
+          <Route path="playground" element={<Playground />} />
         </Route>
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>

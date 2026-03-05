@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { ArrowLeft, Bookmark, RotateCcw } from 'lucide-react'
+import { ArrowLeft, Bookmark, RotateCcw, Terminal } from 'lucide-react'
+import CodeEditor from '../components/CodeEditor'
 import { springConfigs, buttonTap, buttonHover } from '../utils/animations'
 import CardShuffleLoader from '../components/CardShuffleLoader'
 
@@ -17,6 +18,7 @@ export default function Flashcard() {
   const [showAnswer, setShowAnswer] = useState(false)
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({ mastered: 0, recall: 0 })
+  const [showCodeEditor, setShowCodeEditor] = useState(false)
 
   useEffect(() => {
     async function fetchCards() {
@@ -110,6 +112,12 @@ export default function Flashcard() {
             {currentIndex + 1} / {cards.length}
           </span>
           <Bookmark size={18} className="text-gray-500" />
+          <button
+            onClick={() => setShowCodeEditor(v => !v)}
+            className={`p-1.5 rounded-lg transition-colors ${showCodeEditor ? 'text-cyan-400 bg-cyan-500/10' : 'text-gray-500 hover:text-gray-300'}`}
+          >
+            <Terminal size={18} />
+          </button>
         </div>
       </div>
 
@@ -222,6 +230,25 @@ export default function Flashcard() {
           )}
         </div>
       </div>
+
+      {/* Sliding Code Editor */}
+      <AnimatePresence>
+        {showCodeEditor && (
+          <motion.div
+            className="fixed bottom-0 left-0 right-0 z-40 px-4 pb-4"
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          >
+            <CodeEditor
+              initialCode="# Test your understanding here\n"
+              height="200px"
+              compact
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
