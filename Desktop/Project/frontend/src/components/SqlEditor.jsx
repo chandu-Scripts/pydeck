@@ -21,7 +21,6 @@ export default function SqlEditor({ initialCode = '', height = '300px', compact 
           <div className="w-3 h-3 rounded-full bg-yellow-500/70" />
           <div className="w-3 h-3 rounded-full bg-green-500/70" />
           <span className="text-gray-400 text-xs ml-2 font-mono">sql</span>
-          {!dbReady && <span className="text-yellow-400 text-xs ml-1">Loading engine...</span>}
         </div>
         <div className="flex items-center gap-2">
           {(output || hasTable) && (

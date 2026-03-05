@@ -1,6 +1,14 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
 
-const SAMPLE_SETUP = `
+// Wraps SQL in Python sqlite3 to run via Piston v1
+function wrapSqlInPython(sql) {
+  return `
+import sqlite3
+conn = sqlite3.connect(':memory:')
+c = conn.cursor()
+
+# Create sample tables
+c.executescript("""
 CREATE TABLE students (id INTEGER PRIMARY KEY, name TEXT, age INTEGER, grade TEXT, marks INTEGER);
 INSERT INTO students VALUES (1,'Alice',20,'A',95),(2,'Bob',21,'B',78),(3,'Charlie',19,'A',91),(4,'Diana',22,'C',65),(5,'Eve',20,'B',82),(6,'Frank',21,'A',88);
 
@@ -15,7 +23,25 @@ INSERT INTO products VALUES (1,'Laptop',999.99,'Electronics',50),(2,'Phone',599.
 
 CREATE TABLE orders (id INTEGER PRIMARY KEY, product_id INTEGER, quantity INTEGER, total REAL, order_date TEXT);
 INSERT INTO orders VALUES (1,1,2,1999.98,'2024-01-10'),(2,2,1,599.99,'2024-01-11'),(3,3,3,899.97,'2024-01-12'),(4,5,1,349.99,'2024-01-13'),(5,6,5,399.95,'2024-01-14'),(6,1,1,999.99,'2024-01-15');
+""")
+
+try:
+    c.execute(${JSON.stringify(sql)})
+    rows = c.fetchall()
+    if rows:
+        cols = [d[0] for d in c.description]
+        print('|'.join(cols))
+        print('-' * 40)
+        for row in rows:
+            print('|'.join(str(v) for v in row))
+    else:
+        print('Query executed successfully. (no rows returned)')
+except Exception as e:
+    print(f'Error: {e}')
+
+conn.close()
 `
+}
 
 export function useSqlRunner() {
   const [output, setOutput] = useState('')
@@ -23,30 +49,10 @@ export function useSqlRunner() {
   const [rows, setRows] = useState([])
   const [running, setRunning] = useState(false)
   const [error, setError] = useState(false)
-  const [dbReady, setDbReady] = useState(false)
-  const dbRef = useRef(null)
+  const dbReady = true
 
-  useEffect(() => {
-    async function initDb() {
-      try {
-        const initSqlJs = (await import('sql.js')).default
-        const SQL = await initSqlJs({
-          locateFile: file => `/${file}`
-        })
-        const db = new SQL.Database()
-        db.run(SAMPLE_SETUP)
-        dbRef.current = db
-        setDbReady(true)
-      } catch (e) {
-        setOutput('Failed to load SQL engine: ' + e.message)
-        setError(true)
-      }
-    }
-    initDb()
-  }, [])
-
-  function run(sql) {
-    if (!sql.trim() || !dbRef.current) return
+  async function run(sql) {
+    if (!sql.trim()) return
     setRunning(true)
     setError(false)
     setOutput('')
@@ -54,15 +60,34 @@ export function useSqlRunner() {
     setRows([])
 
     try {
-      const results = dbRef.current.exec(sql)
-      if (results.length === 0) {
-        setOutput('Query executed successfully. (no rows returned)')
-      } else {
-        setColumns(results[0].columns)
-        setRows(results[0].values)
+      const pythonCode = wrapSqlInPython(sql.trim())
+      const res = await fetch('https://emkc.org/api/v1/piston/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ language: 'python3', source: pythonCode }),
+      })
+      const data = await res.json()
+      const out = (data.output || '').trim()
+
+      if (!out) {
+        setOutput('(no output)')
+        return
       }
-    } catch (e) {
-      setOutput(e.message)
+
+      // Parse table output
+      const lines = out.split('\n')
+      if (lines.length >= 2 && lines[1].startsWith('---')) {
+        const cols = lines[0].split('|')
+        const dataRows = lines.slice(2).filter(l => l.trim()).map(l => l.split('|'))
+        setColumns(cols)
+        setRows(dataRows)
+      } else {
+        // Plain text output (INSERT, CREATE, errors etc.)
+        setOutput(out)
+        if (out.startsWith('Error:')) setError(true)
+      }
+    } catch {
+      setOutput('Could not connect to code runner. Please try again.')
       setError(true)
     } finally {
       setRunning(false)
@@ -77,9 +102,6 @@ export function useSqlRunner() {
   }
 
   function resetDb() {
-    if (!dbRef.current) return
-    dbRef.current.run('DROP TABLE IF EXISTS students; DROP TABLE IF EXISTS courses; DROP TABLE IF EXISTS enrollments; DROP TABLE IF EXISTS products; DROP TABLE IF EXISTS orders;')
-    dbRef.current.run(SAMPLE_SETUP)
     clear()
   }
 
