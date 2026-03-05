@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { ArrowLeft, Bookmark, RotateCcw, Terminal } from 'lucide-react'
 import CodeEditor from '../components/CodeEditor'
+import SqlEditor from '../components/SqlEditor'
 import { springConfigs, buttonTap, buttonHover } from '../utils/animations'
 import CardShuffleLoader from '../components/CardShuffleLoader'
 
@@ -241,11 +242,11 @@ export default function Flashcard() {
             exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           >
-            <CodeEditor
-              initialCode="# Test your understanding here\n"
-              height="200px"
-              compact
-            />
+            {topic?.paths?.name === 'MySQL' ? (
+              <SqlEditor initialCode="-- Test your SQL here\nSELECT * FROM students;\n" height="200px" compact />
+            ) : (
+              <CodeEditor initialCode="# Test your understanding here\n" height="200px" compact />
+            )}
           </motion.div>
         )}
       </AnimatePresence>

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { ArrowLeft, ChevronLeft, ChevronRight, BookOpen, Terminal, ChevronDown } from 'lucide-react'
 import CodeEditor from '../components/CodeEditor'
+import SqlEditor from '../components/SqlEditor'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { buttonHover, buttonTap } from '../utils/animations'
@@ -182,11 +183,16 @@ export default function Concept() {
   const isFirst = currentIndex === 0
   const isLast = currentIndex === concepts.length - 1
 
-  // Extract first Python code block from current concept
-  const firstCodeBlock = (() => {
+  // Extract first code block from current concept
+  const { firstCodeBlock, codeLanguage } = (() => {
     const parsed = parseMarkdownToComponents(concept.content)
     const codeComp = parsed.find(c => c.type === 'code')
-    return codeComp ? codeComp.content : '# Write your Python here\n'
+    const lang = codeComp?.language?.toLowerCase() || 'python'
+    const isSql = lang === 'sql' || lang === 'mysql'
+    return {
+      firstCodeBlock: codeComp ? codeComp.content : (isSql ? '-- Write your SQL here\n' : '# Write your Python here\n'),
+      codeLanguage: isSql ? 'sql' : 'python',
+    }
   })()
 
   return (
@@ -257,12 +263,11 @@ export default function Concept() {
                   transition={{ duration: 0.25 }}
                   className="overflow-hidden mt-3"
                 >
-                  <CodeEditor
-                    key={currentIndex}
-                    initialCode={firstCodeBlock}
-                    height="250px"
-                    compact
-                  />
+                  {codeLanguage === 'sql' ? (
+                    <SqlEditor key={currentIndex} initialCode={firstCodeBlock} height="250px" compact />
+                  ) : (
+                    <CodeEditor key={currentIndex} initialCode={firstCodeBlock} height="250px" compact />
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
