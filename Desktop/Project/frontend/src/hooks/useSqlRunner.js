@@ -25,16 +25,38 @@ CREATE TABLE orders (id INTEGER PRIMARY KEY, product_id INTEGER, quantity INTEGE
 INSERT INTO orders VALUES (1,1,2,1999.98,'2024-01-10'),(2,2,1,599.99,'2024-01-11'),(3,3,3,899.97,'2024-01-12'),(4,5,1,349.99,'2024-01-13'),(5,6,5,399.95,'2024-01-14'),(6,1,1,999.99,'2024-01-15');
 """)
 
+user_sql = ${JSON.stringify(sql)}
+
+# Split into individual statements (filter empty)
+stmts = [s.strip() for s in user_sql.split(';') if s.strip()]
+
+# Find the last SELECT statement index
+last_select_idx = None
+for i in range(len(stmts) - 1, -1, -1):
+    if stmts[i].upper().lstrip().startswith('SELECT'):
+        last_select_idx = i
+        break
+
 try:
-    c.execute(${JSON.stringify(sql)})
-    rows = c.fetchall()
-    if rows:
-        cols = [d[0] for d in c.description]
-        print('|'.join(cols))
-        print('-' * 40)
-        for row in rows:
-            print('|'.join(str(v) for v in row))
+    if last_select_idx is not None:
+        # Run all statements before the last SELECT (DDL/DML)
+        before = stmts[:last_select_idx]
+        if before:
+            c.executescript(';'.join(before) + ';')
+        # Run the final SELECT to get results
+        c.execute(stmts[last_select_idx])
+        rows = c.fetchall()
+        if rows:
+            cols = [d[0] for d in c.description]
+            print('|'.join(cols))
+            print('-' * 40)
+            for row in rows:
+                print('|'.join(str(v) for v in row))
+        else:
+            print('Query returned no rows.')
     else:
+        # No SELECT — run everything as a script
+        c.executescript(user_sql)
         print('Query executed successfully. (no rows returned)')
 except Exception as e:
     print(f'Error: {e}')
