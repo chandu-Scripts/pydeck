@@ -22,9 +22,11 @@ export function usePythonRunner() {
         }),
       })
       const data = await res.json()
-      const out = data.run?.stdout || data.run?.stderr || ''
+      const stdout = data.run?.stdout ?? ''
+      const stderr = data.run?.stderr ?? ''
+      const out = (stdout + stderr).trim()
       setOutput(out || '(no output)')
-      if (data.run?.stderr) setError(true)
+      if (stderr) setError(true)
     } catch {
       setOutput('Network error — could not reach the code runner.')
       setError(true)
