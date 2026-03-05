@@ -31,7 +31,7 @@ export function useSqlRunner() {
       try {
         const initSqlJs = (await import('sql.js')).default
         const SQL = await initSqlJs({
-          locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/${file}`
+          locateFile: file => `/${file}`
         })
         const db = new SQL.Database()
         db.run(SAMPLE_SETUP)
