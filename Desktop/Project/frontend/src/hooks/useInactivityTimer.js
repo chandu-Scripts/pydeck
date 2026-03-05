@@ -10,14 +10,16 @@ export function useInactivityTimer({
   const [showWarning, setShowWarning] = useState(false)
   const warningTimer = useRef(null)
   const logoutTimer = useRef(null)
+  const onTimeoutRef = useRef(onTimeout)
 
-  const clearTimers = useCallback(() => {
-    clearTimeout(warningTimer.current)
-    clearTimeout(logoutTimer.current)
-  }, [])
+  // Always keep ref current without triggering re-renders
+  useEffect(() => {
+    onTimeoutRef.current = onTimeout
+  }, [onTimeout])
 
   const resetTimer = useCallback(() => {
-    clearTimers()
+    clearTimeout(warningTimer.current)
+    clearTimeout(logoutTimer.current)
     setShowWarning(false)
 
     warningTimer.current = setTimeout(() => {
@@ -26,20 +28,19 @@ export function useInactivityTimer({
 
     logoutTimer.current = setTimeout(() => {
       setShowWarning(false)
-      onTimeout?.()
+      onTimeoutRef.current?.()
     }, timeoutMs)
-  }, [warningMs, timeoutMs, onTimeout, clearTimers])
+  }, [warningMs, timeoutMs])
 
   useEffect(() => {
     resetTimer()
-
     EVENTS.forEach(event => window.addEventListener(event, resetTimer, { passive: true }))
-
     return () => {
-      clearTimers()
+      clearTimeout(warningTimer.current)
+      clearTimeout(logoutTimer.current)
       EVENTS.forEach(event => window.removeEventListener(event, resetTimer))
     }
-  }, [resetTimer, clearTimers])
+  }, [resetTimer])
 
   return { showWarning, resetTimer }
 }
