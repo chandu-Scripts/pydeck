@@ -140,7 +140,7 @@ export default function Analytics() {
         return supabase.from('profiles').update({ points: pts }).eq('id', uid)
       })
       .then(() => {
-        return supabase.from('profiles').select('id, username, avatar_url, points').order('points', { ascending: false })
+        return supabase.from('profiles').select('id, username, avatar_url, points').neq('role', 'guest').order('points', { ascending: false })
       })
       .then((res) => {
         const data = res.data || []
