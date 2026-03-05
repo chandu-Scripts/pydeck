@@ -27,36 +27,31 @@ INSERT INTO orders VALUES (1,1,2,1999.98,'2024-01-10'),(2,2,1,599.99,'2024-01-11
 
 user_sql = ${JSON.stringify(sql)}
 
-# Split into individual statements (filter empty)
 stmts = [s.strip() for s in user_sql.split(';') if s.strip()]
 
-# Find the last SELECT statement index
-last_select_idx = None
-for i in range(len(stmts) - 1, -1, -1):
-    if stmts[i].upper().lstrip().startswith('SELECT'):
-        last_select_idx = i
-        break
+last_rows = None
+last_desc = None
 
 try:
-    if last_select_idx is not None:
-        # Run all statements before the last SELECT (DDL/DML)
-        before = stmts[:last_select_idx]
-        if before:
-            c.executescript(';'.join(before) + ';')
-        # Run the final SELECT to get results
-        c.execute(stmts[last_select_idx])
-        rows = c.fetchall()
-        if rows:
-            cols = [d[0] for d in c.description]
-            print('|'.join(cols))
-            print('-' * 40)
-            for row in rows:
-                print('|'.join(str(v) for v in row))
+    for stmt in stmts:
+        c.execute(stmt)
+        conn.commit()
+        if c.description:
+            last_rows = c.fetchall()
+            last_desc = c.description
         else:
-            print('Query returned no rows.')
+            last_rows = None
+            last_desc = None
+
+    if last_desc is not None:
+        cols = [d[0] for d in last_desc]
+        print('|'.join(cols))
+        print('-' * 40)
+        for row in (last_rows or []):
+            print('|'.join(str(v) for v in row))
+        if not last_rows:
+            print('(no rows returned)')
     else:
-        # No SELECT — run everything as a script
-        c.executescript(user_sql)
         print('Query executed successfully. (no rows returned)')
 except Exception as e:
     print(f'Error: {e}')
