@@ -166,9 +166,9 @@ export default function Playground() {
         transition={{ duration: 0.2 }}
       >
         {tab === 'python' ? (
-          <CodeEditor initialCode={pyCode} height="35vh" onCodeChange={handleCodeChange} />
+          <CodeEditor initialCode={pyCode} height="45vh" onCodeChange={handleCodeChange} />
         ) : (
-          <SqlEditor initialCode={sqlCode} height="35vh" onCodeChange={handleCodeChange} />
+          <SqlEditor initialCode={sqlCode} height="45vh" onCodeChange={handleCodeChange} />
         )}
       </motion.div>
 
