@@ -94,7 +94,7 @@ export default function Playground() {
   }
 
   return (
-    <div className="fixed inset-0 flex flex-col overflow-hidden">
+    <div className="fixed inset-0 flex flex-col overflow-hidden" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
       {/* Header */}
       <div className="flex-shrink-0 flex items-center justify-between px-5 py-4 border-b border-white/5">
         <button onClick={() => navigate(-1)} className="text-gray-400 hover:text-white transition-colors">
@@ -166,9 +166,9 @@ export default function Playground() {
         transition={{ duration: 0.2 }}
       >
         {tab === 'python' ? (
-          <CodeEditor initialCode={pyCode} height="calc(100dvh - 140px)" onCodeChange={handleCodeChange} />
+          <CodeEditor initialCode={pyCode} height="calc(100dvh - 140px - env(safe-area-inset-top) - env(safe-area-inset-bottom))" onCodeChange={handleCodeChange} />
         ) : (
-          <SqlEditor initialCode={sqlCode} height="calc(100dvh - 140px)" onCodeChange={handleCodeChange} />
+          <SqlEditor initialCode={sqlCode} height="calc(100dvh - 140px - env(safe-area-inset-top) - env(safe-area-inset-bottom))" onCodeChange={handleCodeChange} />
         )}
       </motion.div>
 
