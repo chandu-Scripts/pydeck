@@ -7,6 +7,7 @@ from routes.progress import router as progress_router
 from routes.analytics import router as analytics_router
 from routes.otp import router as otp_router
 from routes.notifications import router as notifications_router
+from routes.push import router as push_router
 
 app = FastAPI(title="PyDeck API", version="1.0.0")
 
@@ -25,6 +26,7 @@ app.include_router(progress_router, prefix="/api/progress", tags=["Progress"])
 app.include_router(analytics_router, prefix="/api/analytics", tags=["Analytics"])
 app.include_router(otp_router, prefix="/api/otp", tags=["OTP"])
 app.include_router(notifications_router, prefix="/api/notifications", tags=["Notifications"])
+app.include_router(push_router, prefix="/api/push", tags=["Push"])
 
 
 @app.get("/")

@@ -10,7 +10,10 @@ export default defineConfig({
     VitePWA({
       registerType: 'prompt',
       manifest: false,
-      workbox: {
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
       },
     }),

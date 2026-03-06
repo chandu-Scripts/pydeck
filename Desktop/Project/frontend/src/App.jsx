@@ -20,7 +20,6 @@ import AdminPanel from './pages/AdminPanel'
 import Playground from './pages/Playground'
 import CardShuffleLoader from './components/CardShuffleLoader'
 import ErrorScreen from './components/ErrorScreen'
-import UpdateBanner from './components/UpdateBanner'
 
 class ErrorBoundary extends Component {
   state = { hasError: false }
@@ -80,7 +79,6 @@ function App() {
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </AnimatePresence>
-    <UpdateBanner />
     </ErrorBoundary>
   )
 }

@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { subscribeToPush } from '../hooks/usePushNotifications'
 
 const AuthContext = createContext({})
 
@@ -37,6 +38,7 @@ export function AuthProvider({ children }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (_event === 'SIGNED_IN') {
         localStorage.setItem(LOGIN_TIME_KEY, String(Date.now()))
+        if (session?.user) subscribeToPush(session.user.id)
       }
       if (_event === 'SIGNED_OUT') {
         localStorage.removeItem(LOGIN_TIME_KEY)

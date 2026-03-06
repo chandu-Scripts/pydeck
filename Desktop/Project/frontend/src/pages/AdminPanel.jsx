@@ -22,6 +22,8 @@ export default function AdminPanel() {
   const [announceForm, setAnnounceForm] = useState({ title: '', message: '' })
   const [announceStatus, setAnnounceStatus] = useState(null) // { type: 'success'|'error', text: string }
   const [announceSending, setAnnounceSending] = useState(false)
+  const [pushSending, setPushSending] = useState(false)
+  const [pushStatus, setPushStatus] = useState(null)
   const [editForm, setEditForm] = useState({
     question: '',
     option_a: '',
@@ -290,6 +292,32 @@ export default function AdminPanel() {
     }
   }
 
+  async function handleSendPush() {
+    const title = announceForm.title.trim()
+    const message = announceForm.message.trim()
+    if (!title || !message) {
+      setPushStatus({ type: 'error', text: 'Please fill in both title and message.' })
+      return
+    }
+    setPushSending(true)
+    setPushStatus(null)
+    try {
+      const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
+      const res = await fetch(`${BACKEND_URL}/api/push/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, body: message }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.detail || 'Push failed')
+      setPushStatus({ type: 'success', text: `Push sent to ${data.sent} device(s)!` })
+    } catch (e) {
+      setPushStatus({ type: 'error', text: e.message })
+    } finally {
+      setPushSending(false)
+    }
+  }
+
   if (loading) {
     return <CardShuffleLoader />
   }
@@ -467,7 +495,45 @@ export default function AdminPanel() {
               ) : (
                 <>
                   <Send size={18} />
-                  Send to All Users
+                  Send Email to All Users
+                </>
+              )}
+            </motion.button>
+          </div>
+
+          {/* Push Notification */}
+          <div className="bg-gradient-to-b from-navy-700/50 to-navy-800/50 border border-cyan-500/20 rounded-2xl p-6 space-y-4 mt-4">
+            <div className="flex items-center gap-3 mb-2">
+              <Megaphone size={20} className="text-cyan-400" />
+              <h2 className="text-white font-bold text-lg">Send Push Notification</h2>
+            </div>
+            <p className="text-gray-400 text-sm">Sends a native mobile/browser notification to all subscribed users. Uses the same title & message above.</p>
+
+            {pushStatus && (
+              <div className={`p-3 rounded-xl border text-sm font-medium ${
+                pushStatus.type === 'success'
+                  ? 'bg-green-500/10 border-green-500/30 text-green-400'
+                  : 'bg-red-500/10 border-red-500/30 text-red-400'
+              }`}>
+                {pushStatus.text}
+              </div>
+            )}
+
+            <motion.button
+              onClick={handleSendPush}
+              disabled={pushSending}
+              className="w-full py-3 rounded-xl bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 font-semibold hover:bg-cyan-500/30 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              whileTap={pushSending ? {} : buttonTap}
+            >
+              {pushSending ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Send size={18} />
+                  Send Push to All Devices
                 </>
               )}
             </motion.button>
