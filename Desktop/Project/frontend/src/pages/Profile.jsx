@@ -2,8 +2,9 @@ import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import { Flame, Star, Calendar, Users, Trophy, HelpCircle, LogOut, Pencil, Camera, Check, X, Shield, Share2 } from 'lucide-react'
+import { Flame, Star, Calendar, Users, Trophy, HelpCircle, LogOut, Pencil, Camera, Check, X, Shield, Share2, Settings } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useFontSize } from '../hooks/useFontSize'
 
 export default function Profile() {
   const { user, profile, signOut, refreshProfile, isAdmin } = useAuth()
@@ -15,7 +16,9 @@ export default function Profile() {
   const [uploading, setUploading] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const fileInputRef = useRef(null)
+  const { size, setSize } = useFontSize()
 
   useEffect(() => {
     if (!user) return
@@ -105,6 +108,57 @@ export default function Profile() {
 
   return (
     <div className="px-5 py-8 lg:py-12">
+
+      {/* Settings button top right */}
+      <div className="flex justify-end mb-2">
+        <button
+          onClick={() => setShowSettings(v => !v)}
+          className={`p-2 rounded-xl transition-colors ${showSettings ? 'bg-cyan-500/20 text-cyan-400' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+        >
+          <Settings size={20} />
+        </button>
+      </div>
+
+      {/* Settings Panel */}
+      <AnimatePresence>
+        {showSettings && (
+          <motion.div
+            className="mb-6 bg-navy-700/50 border border-white/10 rounded-2xl p-5"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <h3 className="text-white font-semibold mb-4 text-sm">Settings</h3>
+
+            {/* Font Size */}
+            <div>
+              <p className="text-gray-400 text-xs mb-3">Font Size</p>
+              <div className="flex gap-2">
+                {[
+                  { key: 'normal', label: 'A', desc: 'Default' },
+                  { key: 'large', label: 'A+', desc: 'Large' },
+                  { key: 'xlarge', label: 'A++', desc: 'Extra Large' },
+                ].map(({ key, label, desc }) => (
+                  <button
+                    key={key}
+                    onClick={() => setSize(key)}
+                    className={`flex-1 py-2.5 rounded-xl border text-center transition-colors ${
+                      size === key
+                        ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-400'
+                        : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    <p className="font-bold" style={{ fontSize: key === 'normal' ? 14 : key === 'large' ? 17 : 20 }}>{label}</p>
+                    <p className="text-[10px] mt-0.5 opacity-60">{desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Profile header */}
       <div className="flex flex-col items-center mb-8">
         {/* Avatar with upload */}

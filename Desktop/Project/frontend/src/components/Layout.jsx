@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import BottomNav from './BottomNav'
 import { useAuth } from '../contexts/AuthContext'
 import { useInactivityTimer } from '../hooks/useInactivityTimer'
+import { useOnlineStatus } from '../hooks/useOnlineStatus'
+import { useFontSize } from '../hooks/useFontSize'
 
 function InactivityWarningModal({ onStay, countdown }) {
   return (
@@ -42,6 +44,8 @@ export default function Layout() {
   const navigate = useNavigate()
   const { signOut } = useAuth()
   const hideNav = location.pathname.startsWith('/study/')
+  const isOnline = useOnlineStatus()
+  useFontSize() // applies saved font size on every page
   const [countdown, setCountdown] = useState(60)
 
   const handleTimeout = useCallback(async () => {
@@ -76,6 +80,19 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen bg-navy-900 relative">
+      {/* Offline banner */}
+      <AnimatePresence>
+        {!isOnline && (
+          <motion.div
+            className="fixed top-0 left-0 right-0 z-[200] bg-orange-500 text-white text-center py-2 text-xs font-semibold"
+            initial={{ y: -40 }}
+            animate={{ y: 0 }}
+            exit={{ y: -40 }}
+          >
+            You're offline — showing cached content
+          </motion.div>
+        )}
+      </AnimatePresence>
       <div className="absolute inset-0 bg-gradient-to-br from-navy-900 via-navy-800 to-[#0d1a2e] pointer-events-none" />
       <div className="relative z-10 pb-20 lg:pb-0 lg:pl-64">
         <div className="max-w-2xl mx-auto lg:max-w-5xl">
