@@ -14,11 +14,8 @@ export function useAppUpdate() {
 
   function applyUpdate() {
     sessionStorage.setItem('pydeck_just_updated', '1')
-    // Wait for new SW to take control before reloading
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      window.location.reload()
-    })
     updateServiceWorker(true)
+    window.location.reload()
   }
 
   function dismiss() {
