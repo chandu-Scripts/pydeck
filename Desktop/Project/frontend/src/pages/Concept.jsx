@@ -196,9 +196,9 @@ export default function Concept() {
   })()
 
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
+    <div className="fixed inset-0 flex flex-col" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      {/* Fixed Header */}
+      <div className="flex-shrink-0 flex items-center justify-between px-5 py-4 border-b border-white/5">
         <button
           onClick={() => navigate(`/subtopics/${subtopicId}`)}
           className="text-gray-400 hover:text-white transition-colors cursor-pointer"
@@ -215,7 +215,7 @@ export default function Concept() {
       </div>
 
       {/* Progress bar */}
-      <div className="px-5 py-3">
+      <div className="flex-shrink-0 px-5 py-3">
         <div className="h-1 bg-navy-700 rounded-full overflow-hidden">
           <motion.div
             className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full"

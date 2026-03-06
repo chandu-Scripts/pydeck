@@ -119,9 +119,9 @@ export default function SubtopicGrid() {
   if (error) return <ErrorScreen onRetry={() => navigate(0)} />
 
   return (
-    <div className="px-5 py-8 lg:py-12">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
+    <div className="fixed inset-0 flex flex-col" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      {/* Fixed Header */}
+      <div className="flex-shrink-0 flex items-center gap-3 px-5 py-4 border-b border-white/5">
         <button
           onClick={() => navigate(`/paths/${topicData?.paths?.id || topicData?.path_id}`)}
           className="text-gray-400 hover:text-white transition-colors cursor-pointer"
@@ -134,6 +134,9 @@ export default function SubtopicGrid() {
           <p className="text-gray-400 text-sm">Select a subtopic</p>
         </div>
       </div>
+
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto px-5 py-5">
 
       {/* Grid */}
       <motion.div
@@ -198,6 +201,7 @@ export default function SubtopicGrid() {
           </button>
         </div>
       )}
+      </div>
     </div>
   )
 }
