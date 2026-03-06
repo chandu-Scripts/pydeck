@@ -175,34 +175,34 @@ export default function Playground() {
       {/* Snippets Panel */}
       <AnimatePresence>
         {showSnippets && (
-          <>
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-5">
             <motion.div
-              className="fixed inset-0 bg-black/50 z-40"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowSnippets(false)}
-            />
-            <motion.div
-              className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/10 rounded-t-3xl flex flex-col"
-              style={{ background: '#0d1525', maxHeight: '75vh' }}
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              className="w-full max-w-lg flex flex-col rounded-3xl border-2 border-purple-500/40"
+              style={{
+                background: 'linear-gradient(to bottom, #0f1a2e, #0a1220)',
+                maxHeight: '80vh',
+                boxShadow: '0 0 50px rgba(168,85,247,0.3)',
+              }}
+              initial={{ opacity: 0, scale: 0.85 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.85 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              onClick={e => e.stopPropagation()}
             >
+              {/* Header */}
               <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 flex-shrink-0">
                 <div className="flex items-center gap-2">
                   <FolderOpen size={18} className="text-purple-400" />
                   <h2 className="text-white font-bold">My Snippets</h2>
                   <span className="text-gray-500 text-sm">({snippets.length})</span>
                 </div>
-                <button onClick={() => setShowSnippets(false)} className="text-gray-400 hover:text-white">
+                <button onClick={() => setShowSnippets(false)} className="text-gray-400 hover:text-white transition-colors">
                   <X size={20} />
                 </button>
               </div>
 
-              <div className="overflow-y-auto flex-1 min-h-0 p-4 space-y-3 pb-10">
+              {/* Scrollable list */}
+              <div className="overflow-y-auto flex-1 p-4 space-y-3">
                 {snippets.length === 0 ? (
                   <div className="text-center py-12">
                     <Save size={36} className="text-gray-600 mx-auto mb-3" />
@@ -213,7 +213,7 @@ export default function Playground() {
                   snippets.map((snippet, index) => (
                     <motion.div
                       key={snippet.id}
-                      className="bg-navy-700/50 border border-white/10 rounded-xl p-4"
+                      className="bg-white/5 border border-white/10 rounded-xl p-4"
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.04 }}
@@ -231,7 +231,7 @@ export default function Playground() {
                               value={renameValue}
                               onChange={e => setRenameValue(e.target.value)}
                               onKeyDown={e => e.key === 'Enter' && confirmRename(snippet.id)}
-                              className="flex-1 px-2 py-1 bg-navy-600 border border-cyan-500/40 rounded-lg text-white text-sm"
+                              className="flex-1 px-2 py-1 bg-white/10 border border-cyan-500/40 rounded-lg text-white text-sm"
                             />
                             <button onClick={() => confirmRename(snippet.id)} className="text-emerald-400"><Check size={16} /></button>
                             <button onClick={() => setRenamingId(null)} className="text-gray-500"><X size={16} /></button>
@@ -258,7 +258,7 @@ export default function Playground() {
                 )}
               </div>
             </motion.div>
-          </>
+          </div>
         )}
       </AnimatePresence>
     </div>
