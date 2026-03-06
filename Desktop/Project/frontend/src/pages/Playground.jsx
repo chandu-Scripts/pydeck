@@ -184,13 +184,14 @@ export default function Playground() {
               onClick={() => setShowSnippets(false)}
             />
             <motion.div
-              className="fixed bottom-0 left-0 right-0 z-50 bg-navy-800 border-t border-white/10 rounded-t-3xl max-h-[70vh] overflow-hidden flex flex-col"
+              className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/10 rounded-t-3xl flex flex-col"
+              style={{ background: '#0d1525', maxHeight: '75vh' }}
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             >
-              <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 flex-shrink-0">
                 <div className="flex items-center gap-2">
                   <FolderOpen size={18} className="text-purple-400" />
                   <h2 className="text-white font-bold">My Snippets</h2>
@@ -201,7 +202,7 @@ export default function Playground() {
                 </button>
               </div>
 
-              <div className="overflow-y-auto flex-1 p-4 space-y-3">
+              <div className="overflow-y-auto flex-1 min-h-0 p-4 space-y-3 pb-10">
                 {snippets.length === 0 ? (
                   <div className="text-center py-12">
                     <Save size={36} className="text-gray-600 mx-auto mb-3" />
