@@ -12,14 +12,35 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  const SESSION_TTL = 24 * 60 * 60 * 1000 // 24 hours in ms
+  const LOGIN_TIME_KEY = 'pydeck_login_time'
+
+  function isSessionExpired() {
+    const t = localStorage.getItem(LOGIN_TIME_KEY)
+    if (!t) return false
+    return Date.now() - Number(t) > SESSION_TTL
+  }
+
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user && isSessionExpired()) {
+        localStorage.removeItem(LOGIN_TIME_KEY)
+        await supabase.auth.signOut()
+        setLoading(false)
+        return
+      }
       setUser(session?.user ?? null)
       if (session?.user) fetchProfile(session.user.id)
       else setLoading(false)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (_event === 'SIGNED_IN') {
+        localStorage.setItem(LOGIN_TIME_KEY, String(Date.now()))
+      }
+      if (_event === 'SIGNED_OUT') {
+        localStorage.removeItem(LOGIN_TIME_KEY)
+      }
       setUser(session?.user ?? null)
       if (session?.user) fetchProfile(session.user.id)
       else {
@@ -112,11 +133,15 @@ export function AuthProvider({ children }) {
       options: {
         redirectTo: window.location.origin + '/paths',
         queryParams: {
-          prompt: 'select_account', // Force Google account picker to show
+          prompt: 'select_account',
         },
       },
     })
-    if (error) console.error('Error signing in:', error.message)
+    if (error) {
+      console.error('Error signing in:', error.message)
+      return { error }
+    }
+    return {}
   }
 
   async function signOut() {
