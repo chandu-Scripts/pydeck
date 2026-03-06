@@ -96,7 +96,7 @@ export default function Playground() {
   return (
     <div className="fixed inset-0 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
+      <div className="flex-shrink-0 flex items-center justify-between px-5 py-4 border-b border-white/5">
         <button onClick={() => navigate(-1)} className="text-gray-400 hover:text-white transition-colors">
           <ArrowLeft size={22} />
         </button>
@@ -132,7 +132,7 @@ export default function Playground() {
       </div>
 
       {/* Tab switcher */}
-      <div className="flex gap-2 px-4 pt-4">
+      <div className="flex-shrink-0 flex gap-2 px-4 pt-3 pb-2">
         <button
           onClick={() => setTab('python')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all border ${
@@ -159,16 +159,16 @@ export default function Playground() {
 
       {/* Editor */}
       <motion.div
-        className="flex-1 px-4 py-4 pb-28"
+        className="flex-1 min-h-0 px-4 pb-4 overflow-hidden"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         key={tab}
         transition={{ duration: 0.2 }}
       >
         {tab === 'python' ? (
-          <CodeEditor initialCode={pyCode} height="52vh" onCodeChange={handleCodeChange} />
+          <CodeEditor initialCode={pyCode} height="100%" onCodeChange={handleCodeChange} />
         ) : (
-          <SqlEditor initialCode={sqlCode} height="52vh" onCodeChange={handleCodeChange} />
+          <SqlEditor initialCode={sqlCode} height="100%" onCodeChange={handleCodeChange} />
         )}
       </motion.div>
 
