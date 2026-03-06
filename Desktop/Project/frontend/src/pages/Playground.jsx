@@ -94,7 +94,7 @@ export default function Playground() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="fixed inset-0 flex flex-col overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
         <button onClick={() => navigate(-1)} className="text-gray-400 hover:text-white transition-colors">
