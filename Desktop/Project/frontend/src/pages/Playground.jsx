@@ -159,16 +159,16 @@ export default function Playground() {
 
       {/* Editor */}
       <motion.div
-        className="flex-1 min-h-0 px-4 pb-4 overflow-hidden"
+        className="flex-1 min-h-0 px-4 pb-4"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         key={tab}
         transition={{ duration: 0.2 }}
       >
         {tab === 'python' ? (
-          <CodeEditor initialCode={pyCode} height="100%" onCodeChange={handleCodeChange} />
+          <CodeEditor initialCode={pyCode} height="calc(100dvh - 140px)" onCodeChange={handleCodeChange} />
         ) : (
-          <SqlEditor initialCode={sqlCode} height="100%" onCodeChange={handleCodeChange} />
+          <SqlEditor initialCode={sqlCode} height="calc(100dvh - 140px)" onCodeChange={handleCodeChange} />
         )}
       </motion.div>
 
