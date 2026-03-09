@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useInactivityTimer } from '../hooks/useInactivityTimer'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
 import { useFontSize } from '../hooks/useFontSize'
+import { useTheme } from '../hooks/useTheme'
 
 function InactivityWarningModal({ onStay, countdown }) {
   return (
@@ -46,6 +47,7 @@ export default function Layout() {
   const hideNav = location.pathname.startsWith('/study/')
   const isOnline = useOnlineStatus()
   useFontSize() // applies saved font size on every page
+  useTheme()    // applies saved theme on every page
   const [countdown, setCountdown] = useState(60)
 
   const handleTimeout = useCallback(async () => {

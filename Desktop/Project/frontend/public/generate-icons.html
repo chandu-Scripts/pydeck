@@ -52,7 +52,7 @@
 </head>
 <body>
     <h1>PyDeck Icon Generator</h1>
-    <p>Holo Fan card design (P · Y · D · E · C · K)</p>
+    <p>All 6 letters (P · Y · D · E · C · K) fully visible</p>
 
     <div class="preview">
         <div class="icon-container">
@@ -95,7 +95,6 @@
             { letter: 'K', g: ['#4c1d95', '#7c3aed', '#a855f7'], glow: 'rgba(168,85,247,0.92)' },
         ]
 
-        // Draw a rounded rectangle path
         function rr(ctx, x, y, w, h, r) {
             ctx.beginPath()
             ctx.moveTo(x + r, y)
@@ -114,35 +113,51 @@
             const ctx = canvas.getContext('2d')
             const S = canvas.width
 
-            // ── Background ──────────────────────────────
-            const bg = ctx.createRadialGradient(S * 0.5, S * 0.38, 0, S * 0.5, S * 0.5, S * 0.80)
-            bg.addColorStop(0, '#111827')
+            // ── Background ──────────────────────────────────────────────────
+            const bg = ctx.createRadialGradient(S * 0.5, S * 0.35, 0, S * 0.5, S * 0.5, S * 0.85)
+            bg.addColorStop(0, '#131c2e')
             bg.addColorStop(1, '#060a13')
             ctx.fillStyle = bg
             ctx.fillRect(0, 0, S, S)
 
-            // ── Card sizing ──────────────────────────────
-            const cW = S * 0.23    // card width  (was 0.158)
-            const cH = S * 0.33    // card height (was 0.225)
-            const cr = S * 0.034   // corner radius
+            // Clip so rotated card edges never bleed outside icon bounds
+            ctx.save()
+            ctx.beginPath()
+            ctx.rect(0, 0, S, S)
+            ctx.clip()
 
-            // Fan pivot center
+            // ── Card geometry ───────────────────────────────────────────────
+            //
+            // KEY RULE for "all letters visible":
+            //   horizontal spread between adjacent cards > card half-width
+            //   so each card's center (letter) peeks out from behind its neighbour
+            //
+            // spread per unit = S * 0.120
+            // card half-width = S * 0.105  →  0.120 > 0.105 ✓ every letter exposed
+            //
+            const cW   = S * 0.21    // card width
+            const cH   = S * 0.56    // card height  — tall to fill vertical space
+            const cr   = S * 0.030   // corner radius
+            const SPREAD = S * 0.120  // horizontal distance between adjacent card centres
+
             const fanX = S * 0.5
-            const fanY = S * 0.66
+            const fanY = S * 0.525   // fan pivot centre (moved up from 0.66)
 
-            // Draw back-to-front: outer cards first, center cards on top
+            // Draw order: outer cards first so centre cards sit on top
+            // but every letter still peeks out thanks to spread > half-width
             const drawOrder = [0, 5, 1, 4, 2, 3]
 
             drawOrder.forEach(i => {
-                const card = CARDS[i]
-                const pos   = i - 2.5
+                const card  = CARDS[i]
+                const pos   = i - 2.5            // –2.5 … +2.5
                 const aPos  = Math.abs(pos)
-                const angle = pos * 11 * Math.PI / 180
+                // 5° per position — tight angle so cards don't go out of bounds
+                const angle = pos * 5 * Math.PI / 180
 
-                // Card center before rotation
-                const cx = fanX + pos * S * 0.118
-                const cy = fanY + aPos * S * 0.034 - S * 0.034
+                const cx = fanX + pos * SPREAD
+                const cy = fanY + aPos * S * 0.018 - S * 0.018   // subtle arch
 
+                // Rotate around bottom-centre of card
                 const pivX = cx
                 const pivY = cy + cH * 0.5
 
@@ -169,27 +184,27 @@
                 ctx.fill()
 
                 // Glowing border
-                ctx.shadowBlur = 0
+                ctx.shadowBlur  = 0
                 ctx.strokeStyle = card.glow
-                ctx.lineWidth   = S * 0.004
+                ctx.lineWidth   = S * 0.0042
                 rr(ctx, x, y, cW, cH, cr)
                 ctx.stroke()
 
-                // Foil sheen overlay
+                // Foil sheen
                 const foil = ctx.createLinearGradient(x, y, x + cW, y + cH)
-                foil.addColorStop(0,    'rgba(255,255,255,0.15)')
+                foil.addColorStop(0,    'rgba(255,255,255,0.16)')
                 foil.addColorStop(0.45, 'rgba(255,255,255,0)')
                 foil.addColorStop(1,    'rgba(255,255,255,0.07)')
                 ctx.fillStyle = foil
                 rr(ctx, x, y, cW, cH, cr)
                 ctx.fill()
 
-                // Letter
-                ctx.shadowColor = card.glow
-                ctx.shadowBlur  = S * 0.048
-                ctx.fillStyle   = '#ffffff'
-                ctx.font        = `900 ${Math.round(S * 0.082)}px Inter, Arial, sans-serif`
-                ctx.textAlign   = 'center'
+                // Letter — centered in card, always in the exposed strip
+                ctx.shadowColor  = card.glow
+                ctx.shadowBlur   = S * 0.052
+                ctx.fillStyle    = '#ffffff'
+                ctx.font         = `900 ${Math.round(S * 0.098)}px Inter, Arial, sans-serif`
+                ctx.textAlign    = 'center'
                 ctx.textBaseline = 'middle'
                 ctx.fillText(card.letter, cx, cy)
                 ctx.shadowBlur = 0
@@ -197,15 +212,16 @@
                 ctx.restore()
             })
 
-            // Ambient glow beneath the fan
-            const glow = ctx.createRadialGradient(S * 0.5, S * 0.80, 0, S * 0.5, S * 0.80, S * 0.50)
-            glow.addColorStop(0, 'rgba(59,130,246,0.12)')
+            ctx.restore() // end clip
+
+            // Ambient glow at bottom
+            const glow = ctx.createRadialGradient(S * 0.5, S * 0.84, 0, S * 0.5, S * 0.84, S * 0.50)
+            glow.addColorStop(0, 'rgba(59,130,246,0.14)')
             glow.addColorStop(1, 'rgba(0,0,0,0)')
             ctx.fillStyle = glow
             ctx.fillRect(0, 0, S, S)
         }
 
-        // Render all canvases
         ;['icon512', 'icon192', 'icon180', 'favicon'].forEach(id => {
             drawIcon(document.getElementById(id))
         })

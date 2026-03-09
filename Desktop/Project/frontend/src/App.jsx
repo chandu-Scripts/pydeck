@@ -18,6 +18,16 @@ import Profile from './pages/Profile'
 import CommunityFlashcards from './pages/CommunityFlashcards'
 import AdminPanel from './pages/AdminPanel'
 import Playground from './pages/Playground'
+import Settings from './pages/Settings'
+import ThemeColor from './pages/ThemeColor'
+import FontSize from './pages/FontSize'
+import Notifications from './pages/Notifications'
+import ChangePassword from './pages/ChangePassword'
+import ChangeEmail from './pages/ChangeEmail'
+import Language from './pages/Language'
+import DataPrivacy from './pages/DataPrivacy'
+import DailyGoal from './pages/DailyGoal'
+import StudyReminder from './pages/StudyReminder'
 import CardShuffleLoader from './components/CardShuffleLoader'
 import ErrorScreen from './components/ErrorScreen'
 
@@ -75,6 +85,16 @@ function App() {
           <Route path="community" element={<CommunityFlashcards />} />
           <Route path="admin" element={<AdminPanel />} />
           <Route path="playground" element={<Playground />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="settings/theme" element={<ThemeColor />} />
+          <Route path="settings/font" element={<FontSize />} />
+          <Route path="settings/notifications" element={<Notifications />} />
+          <Route path="settings/password" element={<ChangePassword />} />
+          <Route path="settings/email" element={<ChangeEmail />} />
+          <Route path="settings/language" element={<Language />} />
+          <Route path="settings/privacy" element={<DataPrivacy />} />
+          <Route path="settings/goal" element={<DailyGoal />} />
+          <Route path="settings/reminder" element={<StudyReminder />} />
         </Route>
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>

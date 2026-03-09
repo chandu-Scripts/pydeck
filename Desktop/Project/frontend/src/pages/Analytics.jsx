@@ -130,20 +130,20 @@ export default function Analytics() {
     setLbLoading(true)
 
     const uid = user.id
-    supabase
-      .from('user_progress')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', uid)
-      .eq('status', 'mastered')
+    const showOnLeaderboard = localStorage.getItem('pydeck_leaderboard') !== 'false'
+
+    // Only update points if user wants to appear on leaderboard
+    const updatePoints = showOnLeaderboard
+      ? supabase.from('user_progress').select('*', { count: 'exact', head: true }).eq('user_id', uid).eq('status', 'mastered')
+          .then(res => supabase.from('profiles').update({ points: (res.count || 0) * 10 }).eq('id', uid))
+      : Promise.resolve()
+
+    updatePoints
+      .then(() => supabase.from('profiles').select('id, username, avatar_url, points').neq('role', 'guest').order('points', { ascending: false }))
       .then((res) => {
-        const pts = (res.count || 0) * 10
-        return supabase.from('profiles').update({ points: pts }).eq('id', uid)
-      })
-      .then(() => {
-        return supabase.from('profiles').select('id, username, avatar_url, points').neq('role', 'guest').order('points', { ascending: false })
-      })
-      .then((res) => {
-        const data = res.data || []
+        let data = res.data || []
+        // Hide current user from leaderboard if they opted out
+        if (!showOnLeaderboard) data = data.filter(p => p.id !== uid)
         setLeaderboard(data.map(p => ({
           ...p,
           points: p.points || 0,

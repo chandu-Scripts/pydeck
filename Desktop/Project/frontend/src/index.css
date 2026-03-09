@@ -84,6 +84,30 @@ body {
   min-height: 100vh;
 }
 
+/* Light mode overrides */
+html.light {
+  --color-navy-900: #f0f4ff;
+  --color-navy-800: #e4eaf8;
+  --color-navy-700: #d8e2f5;
+  --color-navy-600: #c8d5f0;
+  --color-navy-500: #b8c8eb;
+}
+html.light body {
+  background-color: #f0f4ff;
+  color: #0f172a;
+}
+html.light .text-white { color: #0f172a !important; }
+html.light .text-gray-400 { color: #475569 !important; }
+html.light .text-gray-500 { color: #64748b !important; }
+html.light .text-gray-300 { color: #334155 !important; }
+html.light .bg-navy-900,
+html.light .bg-\[\#060a13\] { background-color: #f0f4ff !important; }
+html.light .border-white\/10 { border-color: rgba(0,0,0,0.1) !important; }
+html.light .border-white\/5 { border-color: rgba(0,0,0,0.06) !important; }
+html.light .bg-black\/80 { background-color: rgba(240,244,255,0.95) !important; }
+html.light .bg-white\/5 { background-color: rgba(0,0,0,0.04) !important; }
+html.light .bg-white\/10 { background-color: rgba(0,0,0,0.07) !important; }
+
 ::-webkit-scrollbar {
   display: none;
 }
