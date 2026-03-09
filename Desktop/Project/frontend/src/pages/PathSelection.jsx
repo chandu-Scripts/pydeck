@@ -338,7 +338,7 @@ export default function PathSelection() {
           transition={{ duration: 0.5, delay: 0.5, type: 'spring', stiffness: 200 }}
           className="flex flex-col items-center mb-3"
         >
-          <p className="text-xs font-semibold text-gray-400 mb-2 tracking-wider uppercase">Daily Goal</p>
+          <p className="text-xs font-semibold mb-2 tracking-wider uppercase text-cyan-400">Daily Goal</p>
           <DailyGoalRing todayCards={todayCards} dailyGoal={dailyGoal} />
         </motion.div>
 
@@ -395,7 +395,7 @@ function DailyGoalRing({ todayCards, dailyGoal }) {
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', position: 'absolute', inset: 0 }}>
         {/* Track */}
         <circle cx={size / 2} cy={size / 2} r={radius}
-          fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={strokeWidth} />
+          fill="none" stroke="var(--color-cyan-500)" strokeWidth={strokeWidth} strokeOpacity="0.15" />
         {/* Progress arc */}
         <motion.circle cx={size / 2} cy={size / 2} r={radius}
           fill="none" stroke={ringColor} strokeWidth={strokeWidth}
