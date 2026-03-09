@@ -254,30 +254,6 @@ export default function PathSelection() {
         <RotatingTip color={pathTipColors[frontCard?.name] ?? '#22d3ee'} />
       </div>
 
-      {/* Daily Goal progress bar */}
-      <div className="mb-3 px-1">
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-xs text-gray-500 font-medium">Daily Goal</span>
-          <span className="text-xs font-semibold" style={{ color: todayCards >= dailyGoal ? '#4ade80' : '#94a3b8' }}>
-            {todayCards}/{dailyGoal} cards
-          </span>
-        </div>
-        <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
-          <motion.div
-            className="h-full rounded-full"
-            style={{ background: todayCards >= dailyGoal ? 'linear-gradient(90deg, #4ade80, #22c55e)' : 'linear-gradient(90deg, #22d3ee, #06b6d4)' }}
-            initial={{ width: 0 }}
-            animate={{ width: `${Math.min((todayCards / dailyGoal) * 100, 100)}%` }}
-            transition={{ duration: 0.8, ease: 'easeOut' }}
-          />
-        </div>
-        {todayCards >= dailyGoal && (
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[10px] text-emerald-400 mt-1 font-medium">
-            Goal reached! 🎉
-          </motion.p>
-        )}
-      </div>
-
       {/* Update banner below quotes */}
       <AnimatePresence>
         {needRefresh && (
@@ -374,12 +350,22 @@ export default function PathSelection() {
         })()}
       </motion.div>
 
+      {/* Daily Goal Ring — above Community */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.3 }}
+        className="max-w-md mx-auto mt-auto mb-3"
+      >
+        <DailyGoalRing todayCards={todayCards} dailyGoal={dailyGoal} />
+      </motion.div>
+
       {/* Community Flashcards Card - Below Carousel */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.4 }}
-        className="max-w-md mx-auto mt-auto mb-20"
+        className="max-w-md mx-auto mb-20"
       >
         <motion.button
           onClick={() => navigate('/community')}
@@ -408,6 +394,62 @@ export default function PathSelection() {
         topicCounts={topicCounts}
         onPathClick={(path) => navigate(`/paths/${path.id}`)}
       />
+    </div>
+  )
+}
+
+function DailyGoalRing({ todayCards, dailyGoal }) {
+  const size = 64
+  const strokeWidth = 5
+  const radius = (size - strokeWidth) / 2
+  const circumference = 2 * Math.PI * radius
+  const progress = Math.min(todayCards / dailyGoal, 1)
+  const offset = circumference - progress * circumference
+  const done = todayCards >= dailyGoal
+  const ringColor = done ? '#4ade80' : '#22d3ee'
+
+  return (
+    <div className="flex items-center gap-4 px-4 py-3 rounded-2xl border border-white/10" style={{ background: '#0d1525' }}>
+      {/* Circle */}
+      <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
+        <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+          {/* Track */}
+          <circle cx={size / 2} cy={size / 2} r={radius}
+            fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={strokeWidth} />
+          {/* Progress */}
+          <motion.circle cx={size / 2} cy={size / 2} r={radius}
+            fill="none" stroke={ringColor} strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            initial={{ strokeDashoffset: circumference }}
+            animate={{ strokeDashoffset: offset }}
+            transition={{ duration: 1, ease: 'easeOut' }}
+            style={{ filter: `drop-shadow(0 0 4px ${ringColor})` }}
+          />
+        </svg>
+        {/* Center text */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-white font-bold text-sm leading-none">{todayCards}</span>
+          <div className="w-4 h-px bg-white/30 my-0.5" />
+          <span className="text-gray-500 text-[10px] leading-none">{dailyGoal}</span>
+        </div>
+      </div>
+
+      {/* Text */}
+      <div className="flex-1">
+        <p className="text-white text-sm font-semibold">Daily Goal</p>
+        <p className="text-gray-500 text-xs mt-0.5">
+          {done ? 'Goal reached! Great work today.' : `${dailyGoal - todayCards} cards left to reach your goal`}
+        </p>
+      </div>
+
+      {done && (
+        <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+          className="text-xl flex-shrink-0">
+          🎉
+        </motion.span>
+      )}
     </div>
   )
 }
