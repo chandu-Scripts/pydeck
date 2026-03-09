@@ -324,20 +324,21 @@ export default function PathSelection() {
         })()}
       </motion.div>
 
-      {/* Community Flashcards Card with floating Daily Goal ring */}
+      {/* Community Flashcards Card with Daily Goal ring above */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.4 }}
-        className="max-w-md mx-auto mt-auto mb-20 relative pt-10"
+        className="max-w-md mx-auto mt-auto mb-20"
       >
-        {/* Daily Goal circle — centered on top edge of community card */}
+        {/* Daily Goal circle centered above community card */}
         <motion.div
           initial={{ opacity: 0, scale: 0.5 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, delay: 0.5, type: 'spring', stiffness: 200 }}
-          className="absolute -top-0 left-1/2 -translate-x-1/2 z-10"
+          className="flex flex-col items-center mb-3"
         >
+          <p className="text-xs font-semibold text-gray-400 mb-2 tracking-wider uppercase">Daily Goal</p>
           <DailyGoalRing todayCards={todayCards} dailyGoal={dailyGoal} />
         </motion.div>
 
