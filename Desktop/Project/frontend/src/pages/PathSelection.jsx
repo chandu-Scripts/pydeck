@@ -382,9 +382,9 @@ function DailyGoalRing({ todayCards, dailyGoal }) {
   const offset = circumference - progress * circumference
   const done = todayCards >= dailyGoal
 
-  // Gradient stops based on progress
-  const ringColor = done ? '#4ade80' : '#22d3ee'
-  const glowColor = done ? '#4ade80' : '#06b6d4'
+  // Use the CSS variable so it follows the user's chosen theme color
+  const ringColor = done ? '#4ade80' : 'var(--color-cyan-400)'
+  const glowColor = done ? '#4ade80' : 'var(--color-cyan-500)'
 
   return (
     <div className="relative" style={{ width: size, height: size }}>
@@ -414,8 +414,8 @@ function DailyGoalRing({ todayCards, dailyGoal }) {
           <span className="text-lg">🎉</span>
         ) : (
           <>
-            <span className="font-bold leading-none" style={{ fontSize: 15, color: ringColor }}>{todayCards}</span>
-            <div className="w-3 h-px my-0.5" style={{ background: ringColor + '60' }} />
+            <span className="font-bold leading-none text-cyan-400" style={{ fontSize: 15 }}>{todayCards}</span>
+            <div className="w-3 h-px my-0.5 bg-cyan-500/40" />
             <span className="text-gray-500 leading-none" style={{ fontSize: 10 }}>{dailyGoal}</span>
           </>
         )}
