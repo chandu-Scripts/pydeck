@@ -324,23 +324,23 @@ export default function PathSelection() {
         })()}
       </motion.div>
 
-      {/* Daily Goal Ring — above Community */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.3 }}
-        className="max-w-md mx-auto mt-auto mb-3"
-      >
-        <DailyGoalRing todayCards={todayCards} dailyGoal={dailyGoal} />
-      </motion.div>
-
-      {/* Community Flashcards Card - Below Carousel */}
+      {/* Community Flashcards Card with floating Daily Goal ring */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.4 }}
-        className="max-w-md mx-auto mb-20"
+        className="max-w-md mx-auto mt-auto mb-20 relative pt-10"
       >
+        {/* Daily Goal circle — centered on top edge of community card */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.5, type: 'spring', stiffness: 200 }}
+          className="absolute -top-0 left-1/2 -translate-x-1/2 z-10"
+        >
+          <DailyGoalRing todayCards={todayCards} dailyGoal={dailyGoal} />
+        </motion.div>
+
         <motion.button
           onClick={() => navigate('/community')}
           className="w-full flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-r from-purple-500/20 to-pink-600/10 border border-purple-500/20 backdrop-blur-xl cursor-pointer group shadow-2xl"
@@ -373,57 +373,52 @@ export default function PathSelection() {
 }
 
 function DailyGoalRing({ todayCards, dailyGoal }) {
-  const size = 64
-  const strokeWidth = 5
+  const size = 76
+  const strokeWidth = 6
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
   const progress = Math.min(todayCards / dailyGoal, 1)
   const offset = circumference - progress * circumference
   const done = todayCards >= dailyGoal
+
+  // Gradient stops based on progress
   const ringColor = done ? '#4ade80' : '#22d3ee'
+  const glowColor = done ? '#4ade80' : '#06b6d4'
 
   return (
-    <div className="flex items-center gap-4 px-4 py-3 rounded-2xl border border-white/10" style={{ background: '#0d1525' }}>
-      {/* Circle */}
-      <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
-        <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-          {/* Track */}
-          <circle cx={size / 2} cy={size / 2} r={radius}
-            fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={strokeWidth} />
-          {/* Progress */}
-          <motion.circle cx={size / 2} cy={size / 2} r={radius}
-            fill="none" stroke={ringColor} strokeWidth={strokeWidth}
-            strokeLinecap="round"
-            strokeDasharray={circumference}
-            initial={{ strokeDashoffset: circumference }}
-            animate={{ strokeDashoffset: offset }}
-            transition={{ duration: 1, ease: 'easeOut' }}
-            style={{ filter: `drop-shadow(0 0 4px ${ringColor})` }}
-          />
-        </svg>
-        {/* Center text */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-white font-bold text-sm leading-none">{todayCards}</span>
-          <div className="w-4 h-px bg-white/30 my-0.5" />
-          <span className="text-gray-500 text-[10px] leading-none">{dailyGoal}</span>
-        </div>
-      </div>
+    <div className="relative" style={{ width: size, height: size }}>
+      {/* Dark background circle */}
+      <div className="absolute inset-0 rounded-full"
+        style={{ background: 'radial-gradient(circle, #0d1a2e 60%, #060a13 100%)', border: '1px solid rgba(255,255,255,0.08)' }} />
 
-      {/* Text */}
-      <div className="flex-1">
-        <p className="text-white text-sm font-semibold">Daily Goal</p>
-        <p className="text-gray-500 text-xs mt-0.5">
-          {done ? 'Goal reached! Great work today.' : `${dailyGoal - todayCards} cards left to reach your goal`}
-        </p>
-      </div>
+      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', position: 'absolute', inset: 0 }}>
+        {/* Track */}
+        <circle cx={size / 2} cy={size / 2} r={radius}
+          fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={strokeWidth} />
+        {/* Progress arc */}
+        <motion.circle cx={size / 2} cy={size / 2} r={radius}
+          fill="none" stroke={ringColor} strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          initial={{ strokeDashoffset: circumference }}
+          animate={{ strokeDashoffset: offset }}
+          transition={{ duration: 1.2, ease: 'easeOut' }}
+          style={{ filter: `drop-shadow(0 0 5px ${glowColor})` }}
+        />
+      </svg>
 
-      {done && (
-        <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-          className="text-xl flex-shrink-0">
-          🎉
-        </motion.span>
-      )}
+      {/* Center content */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        {done ? (
+          <span className="text-lg">🎉</span>
+        ) : (
+          <>
+            <span className="font-bold leading-none" style={{ fontSize: 15, color: ringColor }}>{todayCards}</span>
+            <div className="w-3 h-px my-0.5" style={{ background: ringColor + '60' }} />
+            <span className="text-gray-500 leading-none" style={{ fontSize: 10 }}>{dailyGoal}</span>
+          </>
+        )}
+      </div>
     </div>
   )
 }
