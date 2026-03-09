@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { ChevronRight, Code, Layers, Cpu, Database, Users, Menu } from 'lucide-react'
-import { SiPython, SiMysql, SiFlask, SiDjango, SiNumpy, SiPandas } from 'react-icons/si'
+import { SiPython, SiMysql, SiFlask, SiDjango, SiNumpy, SiPandas, SiGit, SiGithub } from 'react-icons/si'
 import { buttonTap } from '../utils/animations'
 import PathCarousel from '../components/PathCarousel'
 import PathListModal from '../components/PathListModal'
@@ -19,6 +19,7 @@ const pathIcons = {
   'Django': SiDjango,
   'NumPy': SiNumpy,
   'Pandas': SiPandas,
+  'Git & GitHub': SiGit,
   'Python Basics': Code,
   'Intermediate Python': Layers,
   'Advanced Python': Cpu,
@@ -32,6 +33,7 @@ const pathColors = {
   'Django': 'from-green-500/20 to-green-600/10 border-green-500/20',
   'NumPy': 'from-orange-500/20 to-orange-600/10 border-orange-500/20',
   'Pandas': 'from-purple-500/20 to-purple-600/10 border-purple-500/20',
+  'Git & GitHub': 'from-orange-500/20 to-red-600/10 border-orange-500/20',
   'Python Basics': 'from-cyan-500/20 to-cyan-600/10 border-cyan-500/20',
   'Intermediate Python': 'from-blue-500/20 to-blue-600/10 border-blue-500/20',
   'Advanced Python': 'from-purple-500/20 to-purple-600/10 border-purple-500/20',
@@ -45,6 +47,7 @@ const iconColors = {
   'Django': 'text-green-400',
   'NumPy': 'text-orange-400',
   'Pandas': 'text-purple-400',
+  'Git & GitHub': 'text-orange-400',
   'Python Basics': 'text-cyan-400',
   'Intermediate Python': 'text-blue-400',
   'Advanced Python': 'text-purple-400',
@@ -288,6 +291,16 @@ export default function PathSelection() {
         transition={{ duration: 0.6, delay: 0.2 }}
         className="mb-16 relative"
       >
+        {/* Daily Goal Ring — floats on top of front card, cards don't move */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.35, type: 'spring', stiffness: 200 }}
+          className="absolute top-6 left-1/2 -translate-x-1/2 -translate-y-full z-30 flex flex-col items-center pointer-events-none"
+        >
+          <p className="text-xs font-semibold mb-1 tracking-widest uppercase" style={{ color: 'var(--color-cyan-400)', textShadow: '0 0 10px var(--color-cyan-500)' }}>Daily Goal</p>
+          <DailyGoalRing todayCards={todayCards} dailyGoal={dailyGoal} />
+        </motion.div>
         <PathCarousel
           paths={paths}
           pathIcons={pathIcons}
@@ -331,24 +344,13 @@ export default function PathSelection() {
         })()}
       </motion.div>
 
-      {/* Community Flashcards Card with Daily Goal ring above */}
+      {/* Community Flashcards Card */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.4 }}
         className="max-w-md mx-auto mt-auto mb-20"
       >
-        {/* Daily Goal circle centered above community card */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.5 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, delay: 0.5, type: 'spring', stiffness: 200 }}
-          className="flex flex-col items-center mb-3"
-        >
-          <p className="text-xs font-semibold mb-2 tracking-wider uppercase text-cyan-400">Daily Goal</p>
-          <DailyGoalRing todayCards={todayCards} dailyGoal={dailyGoal} />
-        </motion.div>
-
         <motion.button
           onClick={() => navigate('/community')}
           className="w-full flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-r from-purple-500/20 to-pink-600/10 border border-purple-500/20 backdrop-blur-xl cursor-pointer group shadow-2xl"

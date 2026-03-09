@@ -1,55 +1,62 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#0a1929"/>
-      <stop offset="100%" style="stop-color:#1a2440"/>
+      <stop offset="0%" style="stop-color:#060a13"/>
+      <stop offset="100%" style="stop-color:#0d1a2e"/>
     </linearGradient>
-    <linearGradient id="card" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:#22d3ee"/>
       <stop offset="100%" style="stop-color:#06b6d4"/>
     </linearGradient>
-    <linearGradient id="py" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#3b82f6"/>
-      <stop offset="50%" style="stop-color:#8b5cf6"/>
-      <stop offset="100%" style="stop-color:#22d3ee"/>
+    <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff"/>
+      <stop offset="100%" style="stop-color:#a5f3fc"/>
     </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
   </defs>
 
-  <!-- Background with rounded corners -->
+  <!-- Background -->
   <rect width="512" height="512" rx="108" fill="url(#bg)"/>
 
-  <!-- Glow effect -->
-  <circle cx="256" cy="256" r="200" fill="#22d3ee" opacity="0.15"/>
-  <circle cx="256" cy="256" r="150" fill="#22d3ee" opacity="0.1"/>
+  <!-- Subtle glow -->
+  <ellipse cx="256" cy="240" rx="180" ry="140" fill="#22d3ee" opacity="0.08"/>
 
-  <!-- Main card stack -->
-  <!-- Back cards -->
-  <rect x="90" y="150" width="332" height="220" rx="24" fill="#0f1629" opacity="0.3" transform="rotate(-5 256 260)"/>
-  <rect x="90" y="150" width="332" height="220" rx="24" fill="#151d35" opacity="0.5" transform="rotate(-2.5 256 260)"/>
+  <!-- Back cards (stacked) -->
+  <rect x="100" y="155" width="312" height="210" rx="20" fill="#0f1e35" opacity="0.6" transform="rotate(-6 256 260)"/>
+  <rect x="100" y="155" width="312" height="210" rx="20" fill="#122038" opacity="0.8" transform="rotate(-3 256 260)"/>
 
-  <!-- Front card -->
-  <rect x="90" y="150" width="332" height="220" rx="24" fill="url(#card)" stroke="#22d3ee" stroke-width="4"/>
-  <rect x="102" y="162" width="308" height="196" rx="18" fill="#060a13" opacity="0.9"/>
+  <!-- Front card body -->
+  <rect x="100" y="155" width="312" height="210" rx="20" fill="url(#cardGrad)" filter="url(#glow)"/>
+  <rect x="112" y="167" width="288" height="186" rx="14" fill="#060a13" opacity="0.92"/>
 
-  <!-- Python logo simplified -->
-  <g transform="translate(256, 260)">
-    <!-- Top part (blue) -->
-    <path d="M -45,-35 Q -45,-55 -25,-55 L 15,-55 Q 35,-55 35,-35 L 35,0 Q 35,15 20,15 L -20,15 Q -35,15 -35,0 Z"
-          fill="url(#py)" opacity="0.95"/>
-    <circle cx="-25" cy="-42" r="5" fill="#ffffff"/>
+  <!-- Decorative corner dots -->
+  <circle cx="130" cy="185" r="5" fill="#22d3ee" opacity="0.5"/>
+  <circle cx="382" cy="185" r="5" fill="#22d3ee" opacity="0.5"/>
+  <circle cx="130" cy="335" r="5" fill="#22d3ee" opacity="0.5"/>
+  <circle cx="382" cy="335" r="5" fill="#22d3ee" opacity="0.5"/>
 
-    <!-- Bottom part (cyan) -->
-    <path d="M 45,35 Q 45,55 25,55 L -15,55 Q -35,55 -35,35 L -35,0 Q -35,-15 -20,-15 L 20,-15 Q 35,-15 35,0 Z"
-          fill="#22d3ee" opacity="0.95"/>
-    <circle cx="25" cy="42" r="5" fill="#0a1929"/>
+  <!-- "Py" text centered on card -->
+  <text x="256" y="305"
+        font-family="'Inter', Arial, sans-serif"
+        font-size="130"
+        font-weight="900"
+        fill="url(#textGrad)"
+        text-anchor="middle"
+        letter-spacing="-4">Py</text>
 
-    <!-- Center connecting piece -->
-    <rect x="-5" y="-10" width="10" height="20" fill="#1a2440" opacity="0.6" rx="2"/>
-  </g>
+  <!-- Thin cyan underline accent -->
+  <rect x="186" y="318" width="140" height="4" rx="2" fill="#22d3ee" opacity="0.7"/>
 
-  <!-- "Py" text on card -->
-  <text x="256" y="400" font-family="'Inter', Arial, sans-serif" font-size="72" font-weight="900"
-        fill="#22d3ee" text-anchor="middle" letter-spacing="-2">
-    Py
-  </text>
+  <!-- "DECK" small label below card -->
+  <text x="256" y="408"
+        font-family="'Inter', Arial, sans-serif"
+        font-size="38"
+        font-weight="700"
+        fill="#22d3ee"
+        text-anchor="middle"
+        letter-spacing="12"
+        opacity="0.85">DECK</text>
 </svg>

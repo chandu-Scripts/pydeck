@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
+import { SiGit } from 'react-icons/si'
 
 // ─── Color map (regular carousel badge colours) ───────────────────────────────
 const colorMap = {
@@ -20,6 +21,7 @@ const CARD_GRADIENTS = {
   Django: 'linear-gradient(145deg,#064e3b 0%,#059669 55%,#10b981 100%)',
   NumPy:  'linear-gradient(145deg,#7c2d12 0%,#ea580c 55%,#f97316 100%)',
   Pandas: 'linear-gradient(145deg,#4c1d95 0%,#7c3aed 55%,#a855f7 100%)',
+  'Git & GitHub': 'linear-gradient(145deg,#7c1d0a 0%,#dc2626 55%,#f97316 100%)',
 }
 const DEFAULT_GRADIENT = 'linear-gradient(145deg,#164e63 0%,#0891b2 55%,#22d3ee 100%)'
 
@@ -30,6 +32,7 @@ const GLOW_COLORS = {
   Django: 'rgba(16,185,129,0.75)',
   NumPy:  'rgba(249,115,22,0.75)',
   Pandas: 'rgba(168,85,247,0.75)',
+  'Git & GitHub': 'rgba(249,115,22,0.75)',
 }
 const DEFAULT_GLOW = 'rgba(34,211,238,0.75)'
 
@@ -50,7 +53,7 @@ function HoloCard({
   const innerRef = useRef(null)
   const shineRef = useRef(null)
 
-  const Icon      = pathIcons[path.name] || pathIcons['Python']
+  const Icon      = pathIcons[path.name] || SiGit
   const iconColor = iconColors[path.name] || 'text-cyan-400'
   const btnColors = colorMap[iconColor]   || colorMap['text-cyan-400']
   const bg        = CARD_GRADIENTS[path.name] || DEFAULT_GRADIENT
