@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronLeft, Clock, Bell, Check } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { supabase } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
 
 const KEY_TIME    = 'pydeck_reminder_time'
 const KEY_ENABLED = 'pydeck_reminder_on'
@@ -13,16 +15,30 @@ const PRESETS = [
   { label: 'Night',     time: '21:00', emoji: '🌙' },
 ]
 
+// Convert local "HH:MM" to UTC "HH:MM"
+function localToUtc(localTime) {
+  const [h, m] = localTime.split(':').map(Number)
+  const d = new Date()
+  d.setHours(h, m, 0, 0)
+  return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`
+}
+
 export default function StudyReminder() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [enabled, setEnabled] = useState(() => localStorage.getItem(KEY_ENABLED) === 'true')
   const [time, setTime]       = useState(() => localStorage.getItem(KEY_TIME) || '08:00')
+  const [saving, setSaving]   = useState(false)
   const [saved, setSaved]     = useState(false)
 
-  function handleToggle() {
+  async function handleToggle() {
     const next = !enabled
     setEnabled(next)
     localStorage.setItem(KEY_ENABLED, String(next))
+    // If disabling, save immediately to Supabase
+    if (!next && user) {
+      await supabase.from('profiles').update({ reminder_enabled: false }).eq('id', user.id)
+    }
   }
 
   function handlePreset(t) {
@@ -30,9 +46,17 @@ export default function StudyReminder() {
     localStorage.setItem(KEY_TIME, t)
   }
 
-  function handleSave() {
+  async function handleSave() {
     localStorage.setItem(KEY_TIME, time)
     localStorage.setItem(KEY_ENABLED, String(enabled))
+    setSaving(true)
+    if (user) {
+      await supabase.from('profiles').update({
+        reminder_enabled: enabled,
+        reminder_time_utc: localToUtc(time),
+      }).eq('id', user.id)
+    }
+    setSaving(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
@@ -120,9 +144,9 @@ export default function StudyReminder() {
               </div>
             </div>
 
-            <button onClick={handleSave}
-              className="w-full py-3.5 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 font-semibold text-sm hover:bg-cyan-500/30 transition-colors flex items-center justify-center gap-2">
-              {saved ? <><Check size={16} strokeWidth={3} /> Saved!</> : 'Save Reminder'}
+            <button onClick={handleSave} disabled={saving}
+              className="w-full py-3.5 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 font-semibold text-sm hover:bg-cyan-500/30 transition-colors flex items-center justify-center gap-2 disabled:opacity-60">
+              {saving ? 'Saving...' : saved ? <><Check size={16} strokeWidth={3} /> Saved!</> : 'Save Reminder'}
             </button>
           </motion.div>
         )}

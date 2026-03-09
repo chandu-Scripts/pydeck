@@ -159,11 +159,20 @@ export default function PathSelection() {
   const [showPathList, setShowPathList] = useState(false)
   const [currentPathIndex, setCurrentPathIndex] = useState(0)
   const [frontCard, setFrontCard] = useState(null)
+  const [todayCards, setTodayCards] = useState(0)
   const navigate = useNavigate()
-  const { profile } = useAuth()
+  const { user, profile } = useAuth()
   const { needRefresh, applyUpdate, dismiss } = useAppUpdate()
 
   const greeting = getGreeting()
+  const dailyGoal = parseInt(localStorage.getItem('pydeck_daily_goal') || '10')
+
+  useEffect(() => {
+    if (!user) return
+    const today = new Date().toISOString().split('T')[0]
+    supabase.from('study_sessions').select('cards_studied').eq('user_id', user.id).eq('date', today).single()
+      .then(({ data }) => setTodayCards(data?.cards_studied || 0))
+  }, [user])
 
   useEffect(() => {
     async function fetchPathsAndTopics() {
@@ -243,6 +252,30 @@ export default function PathSelection() {
       {/* Rotating motivational tip — colour follows the front carousel card */}
       <div className="mb-2">
         <RotatingTip color={pathTipColors[frontCard?.name] ?? '#22d3ee'} />
+      </div>
+
+      {/* Daily Goal progress bar */}
+      <div className="mb-3 px-1">
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-xs text-gray-500 font-medium">Daily Goal</span>
+          <span className="text-xs font-semibold" style={{ color: todayCards >= dailyGoal ? '#4ade80' : '#94a3b8' }}>
+            {todayCards}/{dailyGoal} cards
+          </span>
+        </div>
+        <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+          <motion.div
+            className="h-full rounded-full"
+            style={{ background: todayCards >= dailyGoal ? 'linear-gradient(90deg, #4ade80, #22c55e)' : 'linear-gradient(90deg, #22d3ee, #06b6d4)' }}
+            initial={{ width: 0 }}
+            animate={{ width: `${Math.min((todayCards / dailyGoal) * 100, 100)}%` }}
+            transition={{ duration: 0.8, ease: 'easeOut' }}
+          />
+        </div>
+        {todayCards >= dailyGoal && (
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[10px] text-emerald-400 mt-1 font-medium">
+            Goal reached! 🎉
+          </motion.p>
+        )}
       </div>
 
       {/* Update banner below quotes */}

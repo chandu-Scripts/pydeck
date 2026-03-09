@@ -56,3 +56,45 @@ async def send_push(req: PushRequest):
             pass
 
     return {"sent": sent}
+
+
+async def send_scheduled_reminders():
+    """Called every minute by APScheduler — sends push to users whose reminder time matches now (UTC)."""
+    try:
+        from pywebpush import webpush, WebPushException
+    except ImportError:
+        return
+    if not VAPID_PRIVATE_KEY:
+        return
+
+    from datetime import datetime, timezone
+    now_utc = datetime.now(timezone.utc)
+    current_time = f"{now_utc.hour:02d}:{now_utc.minute:02d}"
+
+    # Find users with reminder enabled at this exact UTC minute
+    result = supabase.table('profiles').select('id').eq('reminder_enabled', True).eq('reminder_time_utc', current_time).execute()
+    users = result.data or []
+    if not users:
+        return
+
+    user_ids = [u['id'] for u in users]
+
+    # Get their push subscriptions
+    subs_result = supabase.table('push_subscriptions').select('subscription').in_('user_id', user_ids).execute()
+    subs = subs_result.data or []
+
+    payload = json.dumps({
+        "title": "Time to study! 📚",
+        "body": "Keep your streak alive — your daily cards are waiting.",
+    })
+
+    for row in subs:
+        try:
+            webpush(
+                subscription_info=row['subscription'],
+                data=payload,
+                vapid_private_key=VAPID_PRIVATE_KEY,
+                vapid_claims=VAPID_CLAIMS,
+            )
+        except WebPushException:
+            pass
