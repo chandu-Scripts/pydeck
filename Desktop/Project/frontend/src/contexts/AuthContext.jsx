@@ -221,13 +221,9 @@ async function signUpWithEmail(email, password, name) {
       })
       const data = await res.json()
       if (!res.ok) return { error: { message: data.detail || 'Failed to create account' } }
-      const { data: authData, error } = await supabase.auth.verifyOtp({
-        token_hash: data.hashed_token,
-        type: 'magiclink',
-      })
+      // Sign in directly with password — simpler and more reliable than magic links
+      const { data: authData, error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) return { error }
-      // Set password so user can sign in with email+password later
-      await supabase.auth.updateUser({ password })
       return { data: authData }
     } catch {
       return { error: { message: 'Network error. Please try again.' } }

@@ -291,16 +291,6 @@ export default function PathSelection() {
         transition={{ duration: 0.6, delay: 0.2 }}
         className="mb-16 relative"
       >
-        {/* Daily Goal Ring — floats on top of front card, cards don't move */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.5 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, delay: 0.35, type: 'spring', stiffness: 200 }}
-          className="absolute top-6 left-1/2 -translate-x-1/2 -translate-y-full z-30 flex flex-col items-center pointer-events-none"
-        >
-          <p className="text-xs font-semibold mb-1 tracking-widest uppercase" style={{ color: 'var(--color-cyan-400)', textShadow: '0 0 10px var(--color-cyan-500)' }}>Daily Goal</p>
-          <DailyGoalRing todayCards={todayCards} dailyGoal={dailyGoal} />
-        </motion.div>
         <PathCarousel
           paths={paths}
           pathIcons={pathIcons}
@@ -351,6 +341,17 @@ export default function PathSelection() {
         transition={{ duration: 0.5, delay: 0.4 }}
         className="max-w-md mx-auto mt-auto mb-20"
       >
+        {/* Daily Goal ring — sits above community card, no overlap */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.5, type: 'spring', stiffness: 200 }}
+          className="flex flex-col items-center mb-3"
+        >
+          <p className="text-xs font-semibold mb-1 tracking-widest uppercase" style={{ color: 'var(--color-cyan-400)', textShadow: '0 0 10px var(--color-cyan-500)' }}>Daily Goal</p>
+          <DailyGoalRing todayCards={todayCards} dailyGoal={dailyGoal} />
+        </motion.div>
+
         <motion.button
           onClick={() => navigate('/community')}
           className="w-full flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-r from-purple-500/20 to-pink-600/10 border border-purple-500/20 backdrop-blur-xl cursor-pointer group shadow-2xl"

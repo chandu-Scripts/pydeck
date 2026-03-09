@@ -215,14 +215,4 @@ async def create_account(req: CreateAccountRequest):
         except Exception:
             pass
 
-    # 4. Generate magic link token to sign them in
-    try:
-        response = supabase.auth.admin.generate_link({
-            "type": "magiclink",
-            "email": email,
-        })
-        hashed_token = response.properties.hashed_token
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Auth error: {str(e)}")
-
-    return {"hashed_token": hashed_token}
+    return {"ok": True}
