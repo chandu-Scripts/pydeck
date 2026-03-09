@@ -167,9 +167,16 @@ export default function PathSelection() {
 
   useEffect(() => {
     if (!user) return
-    const today = new Date().toISOString().split('T')[0]
-    supabase.from('study_sessions').select('cards_studied').eq('user_id', user.id).eq('date', today).single()
-      .then(({ data }) => setTodayCards(data?.cards_studied || 0))
+    function fetchTodayCards() {
+      const today = new Date().toISOString().split('T')[0]
+      supabase.from('study_sessions').select('cards_studied')
+        .eq('user_id', user.id).eq('date', today).maybeSingle()
+        .then(({ data }) => setTodayCards(data?.cards_studied || 0))
+    }
+    fetchTodayCards()
+    // Re-fetch when user returns to this tab/page
+    window.addEventListener('focus', fetchTodayCards)
+    return () => window.removeEventListener('focus', fetchTodayCards)
   }, [user])
 
   useEffect(() => {
